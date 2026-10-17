@@ -69,8 +69,21 @@ export async function renderHistory(): Promise<void> {
   }
   el.innerHTML = list.map((r) => histItemHtml(r)).join('');
 }
-// um item da lista de partidas (modal de histórico, página Histórico e Início); del:false tira o botão Excluir
-export function histItemHtml(r: GameRecord, { del = true }: { del?: boolean } = {}): string {
+/** dados de um item da lista de partidas (modal de histórico, página Histórico e Início); o HTML (histItemHtml) e o
+    componente React (desktop/react/hist-item.tsx) só desenham isto */
+export interface HistItemView {
+  id: string;
+  cls: string;
+  label: string;
+  ico: 'w' | 'b';
+  title: string;
+  mock: boolean;
+  meta: string;
+  /** linha de detalhe: texto do resultado e a variação do rating (ou "vale rating") */
+  detail: { text: string; rating: { cls: string; text: string } | null; rated: boolean } | null;
+  act: string;
+}
+export function histItemView(r: GameRecord): HistItemView {
   const key = r.status === 'andamento' ? 'andamento' : r.result || 'livre';
   const [label, st] = RESULT_UI[key] || RESULT_UI.livre;
   const full = Math.ceil((r.plyCount != null ? r.plyCount : (r.moves || []).length) / 2);
@@ -84,20 +97,42 @@ export function histItemHtml(r: GameRecord, { del = true }: { del?: boolean } = 
     .filter(Boolean)
     .join(' · ');
   const ri = r.ratingDelta != null ? { delta: r.ratingDelta } : ratingInfo(r.id);
-  const rtxt = ri
-    ? ` · <span class="${ri.delta >= 0 ? 'delta-up' : 'delta-down'}">Rating ${fmtDelta(ri.delta)}</span>`
-    : r.rated && r.status === 'andamento'
-      ? ' · vale rating'
-      : '';
-  const detail =
-    (r.status === 'concluida' && r.resultText) || rtxt ? `<small>${esc(r.status === 'concluida' ? r.resultText || '' : '')}${rtxt}</small>` : '';
-  return `<li class="hist-item st-${st}${r.status === 'andamento' ? ' andamento' : ''}${r.id === S.gameId ? ' current' : ''}">
-    <button class="hist-open" data-open="${esc(r.id)}">
-      <span class="hist-ico ${r.mode === 'review' ? 'w' : r.player === 'b' ? 'b' : 'w'}" aria-hidden="true">${GLYPH.k}</span>
-      <span class="hist-main"><b>${esc(recTitle(r))}${r.mock ? '<span class="mock-tag">exemplo</span>' : ''}</b><small>${esc(meta)}</small>${detail}</span>
-      <span class="hist-side"><span class="chip">${label}</span><span class="hist-act">${r.status === 'andamento' ? 'Continuar ▸' : 'Rever ▸'}</span></span>
+  const rating = ri ? { cls: ri.delta >= 0 ? 'delta-up' : 'delta-down', text: `Rating ${fmtDelta(ri.delta)}` } : null;
+  const rated = !ri && !!r.rated && r.status === 'andamento';
+  const andamento = r.status === 'andamento';
+  return {
+    id: r.id,
+    cls: `hist-item st-${st}${andamento ? ' andamento' : ''}${r.id === S.gameId ? ' current' : ''}`,
+    label,
+    ico: r.mode === 'review' ? 'w' : r.player === 'b' ? 'b' : 'w',
+    title: recTitle(r),
+    mock: !!r.mock,
+    meta,
+    detail:
+      (r.status === 'concluida' && r.resultText) || rating || rated
+        ? { text: r.status === 'concluida' ? r.resultText || '' : '', rating, rated }
+        : null,
+    act: andamento ? 'Continuar ▸' : 'Rever ▸',
+  };
+}
+// um item da lista de partidas em HTML (modal de histórico); del:false tira o botão Excluir
+export function histItemHtml(r: GameRecord, { del = true }: { del?: boolean } = {}): string {
+  const v = histItemView(r);
+  const rtxt = v.detail
+    ? v.detail.rating
+      ? ` · <span class="${v.detail.rating.cls}">${v.detail.rating.text}</span>`
+      : v.detail.rated
+        ? ' · vale rating'
+        : ''
+    : '';
+  const detail = v.detail ? `<small>${esc(v.detail.text)}${rtxt}</small>` : '';
+  return `<li class="${v.cls}">
+    <button class="hist-open" data-open="${esc(v.id)}">
+      <span class="hist-ico ${v.ico}" aria-hidden="true">${GLYPH.k}</span>
+      <span class="hist-main"><b>${esc(v.title)}${v.mock ? '<span class="mock-tag">exemplo</span>' : ''}</b><small>${esc(v.meta)}</small>${detail}</span>
+      <span class="hist-side"><span class="chip">${v.label}</span><span class="hist-act">${v.act}</span></span>
     </button>
-    ${del ? `<button class="hist-del" data-del="${esc(r.id)}" aria-label="Excluir ${esc(recTitle(r))}">Excluir</button>` : ''}
+    ${del ? `<button class="hist-del" data-del="${esc(v.id)}" aria-label="Excluir ${esc(v.title)}">Excluir</button>` : ''}
   </li>`;
 }
 let histReturnFocus: Element | null = null;
