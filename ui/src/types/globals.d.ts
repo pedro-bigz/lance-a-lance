@@ -1,4 +1,17 @@
 import type { LanceDesktop } from './api';
+import type { RatingRecord } from '../core/rating';
+import type { GameStoreApi, ListResult } from '../store/game-store';
+import type { GameRecord } from '../store/types';
+
+/** Atalhos de teste no console (game/mocks.ts): LanceALance.mocks.load(), await LanceALance.games(), LanceALance.store() */
+export interface LanceALanceDebug {
+  rating: { get(): RatingRecord; reset(): void };
+  mocks: { load(): GameRecord[]; clear(): void; list: readonly object[] };
+  games(): Promise<ListResult>;
+  store(): GameStoreApi | null;
+  save(): boolean;
+  open(id: string): Promise<void>;
+}
 
 /** Mensagem para o Claude do artifact (capacidade "sample" do claude.ai). */
 export interface SampleMessage {
@@ -33,8 +46,7 @@ declare global {
     lanceDesktop?: LanceDesktop;
     claude?: ClaudeRuntime;
     /** Atalhos para testes no console (veja game/mocks.ts). */
-    // TODO(etapa2): tipar o objeto de atalhos se ele virar API de teste de verdade
-    LanceALance?: unknown;
+    LanceALance?: LanceALanceDebug;
     webkitAudioContext?: typeof AudioContext;
   }
 }

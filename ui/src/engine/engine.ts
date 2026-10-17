@@ -71,10 +71,12 @@ export class Engine {
         }
         let w: Worker | undefined,
           settled = false;
+        // declarado antes de fail(): se new Worker() lançar na hora, fail() roda antes do setTimeout abaixo
+        let timer: ReturnType<typeof setTimeout> | undefined = undefined;
         const fail = () => {
           if (settled) return;
           settled = true;
-          clearTimeout(timer);
+          if (timer) clearTimeout(timer);
           try {
             if (w) w.terminate();
           } catch (_) {}
@@ -97,7 +99,7 @@ export class Engine {
           const line = String(e.data);
           for (const h of [...this.handlers]) h(line);
         };
-        const timer = setTimeout(fail, 30000);
+        timer = setTimeout(fail, 30000);
         this.waitFor((l) => l === 'uciok')
           .then(() => {
             this.send('setoption name Hash value 32');

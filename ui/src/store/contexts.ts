@@ -18,7 +18,7 @@ import { STUDY, devOf, studyDevEvals, studyFromSnapshot, studySync, type Practic
 import { abortTutor } from '../tutor/tutor';
 import { $ } from '../ui/dom';
 import { GameStore } from './game-store';
-import { lsGet, newId } from './local';
+import { isObj, isStr, lsGet, newId } from './local';
 import { restore, save, saveGame, studyStoreKey, STORE, type BoardSnapshot } from './session';
 
 export type BoardCtx = 'jogo' | 'estudo';
@@ -73,9 +73,17 @@ function loadJogoCtx(): void {
   S.trainer = m && m.gameId === S.gameId ? m.trainer : null; // treino do tutor que estava no Tabuleiro
   STUDY.practice = m && m.gameId === S.gameId ? m.practice : null;
 }
+// slot do estudo no localStorage: posição inicial, lances em UCI e o estado do estudo (objeto) para reconstruir a prática
+const isSnapshot = (v: unknown): v is BoardSnapshot =>
+  isObj(v) &&
+  isStr(v.start) &&
+  Array.isArray(v.moves) &&
+  v.moves.every(isStr) &&
+  (v.gameId == null || isStr(v.gameId)) &&
+  (v.study == null || isObj(v.study));
 function loadStudyCtx(): void {
   const key = studyStoreKey(),
-    d = lsGet<BoardSnapshot | null>(key, null),
+    d = lsGet<BoardSnapshot | null>(key, null, isSnapshot),
     m = CTX_MEM.estudo;
   const rebuilt = d && d.study && d.gameId ? (m && m.gameId === d.gameId && m.practice ? m : studyFromSnapshot(d.study)) : null;
   if (!rebuilt || !rebuilt.practice || !restore(key)) {

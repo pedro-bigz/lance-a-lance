@@ -18,7 +18,7 @@
    inclusive ao reabrir o app. */
 import type { GameSaveData, IpcResult, LanceDesktop } from '../types/api';
 import { LEGACY_SID, UUID_RE, apiBody, apiMoves, fromApi } from './convert';
-import { lsGet, lsSet, readGames, writeGames } from './local';
+import { arrayOf, isObj, isStr, lsGet, lsSet, readGames, writeGames } from './local';
 import type { GameRecord, SaveRecord } from './types';
 import type { GameStatus } from '../core/result';
 
@@ -120,11 +120,15 @@ export function localGameStore(): GameStoreApi {
 }
 
 type GamesBridge = NonNullable<LanceDesktop['games']>;
+// gravação pendente na fila: partida inteira ou só as classificações, sempre com id e lances
+const isQueued = (v: unknown): v is SaveRecord => isObj(v) && isStr(v.id) && Array.isArray(v.moves);
 export function apiGameStore(api: GamesBridge, uid: string): GameStoreApi {
   const QKEY = `lance-a-lance:fila:u${uid}`; // uid = uuid do usuário
   // id → última versão pendente (gravação de partida identificada pelo id numérico antigo é descartada)
   const queue = new Map<string, SaveRecord>(
-    (lsGet<SaveRecord[]>(QKEY, []) || []).filter((e) => e && typeof e.id === 'string' && !LEGACY_SID.test(e.id)).map((e) => [e.id, e]),
+    lsGet<SaveRecord[]>(QKEY, [], arrayOf(isQueued))
+      .filter((e) => !LEGACY_SID.test(e.id))
+      .map((e) => [e.id, e]),
   );
   const serverIds = new Map<string, string>(),
     concluded = new Set<string>(),
