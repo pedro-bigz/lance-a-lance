@@ -60,7 +60,9 @@ navegar, com Esc ou clicando fora.
 Para criar uma tela nova (contrato descrito também no comentário de `ui/src/desktop/views.ts`):
 
 1. HTML: `<section class="view" data-view="NOME" hidden>` dentro de `#appRoot` em `ui/index.html`, ao lado das outras views;
-   modais dela ficam fora das views, junto dos outros `.modal`.
+   modais dela ficam fora das views, junto dos outros `.modal`. Uma tela de formulário ou lista pode ser uma ilha React: a
+   section fica vazia, o componente monta nela em `ui/src/desktop/islands.tsx`, os modais vão por `createPortal` (componente
+   `Modal`) e o `onShow` chama `refreshView('NOME')` (veja "Ilhas React" em `ui/README.md`).
 2. TS (`ui/src/desktop/views.ts`): `VIEWS.NOME = {title: 'Título', roles: ['administrador', 'jogador'], nav: true, icon: 'chave', onShow() {}, onHide() {}}`.
    `nav: true` põe a tela na sidebar, na ordem das chaves de `VIEWS`, com o ícone `NAV_ICONS[icon]` (SVG de traço 24×24;
    crie a chave se precisar) e o texto de `title`; só aparece para quem tem o papel. `onShow`/`onHide` são opcionais.
