@@ -59,14 +59,14 @@ navegar, com Esc ou clicando fora.
 
 Para criar uma tela nova (contrato descrito também no comentário de `ui/src/desktop/views.ts`):
 
-1. HTML: `<section class="view" data-view="NOME" hidden>` dentro de `#appRoot` em `ui/index.html`, ao lado das outras views;
-   modais dela ficam fora das views, junto dos outros `.modal`. Uma tela de formulário ou lista pode ser uma ilha React: a
-   section fica vazia, o componente monta nela em `ui/src/desktop/islands.tsx`, os modais vão por `createPortal` (componente
-   `Modal`) e o `onShow` chama `refreshView('NOME')` (veja "Ilhas React" em `ui/README.md`).
+1. Componente: `<section class="view" data-view="NOME">` em `ui/src/app/app.tsx`, ao lado das outras views, com o
+   componente da tela dentro (só depois do login, como as outras). Os modais dela usam o componente `Modal`
+   (`ui/src/react/modal.tsx`, por `createPortal` no fim de `#appRoot`) e o `onShow` chama `refreshView('NOME')` (veja
+   "React e o estado do jogo" em `ui/README.md`).
 2. TS (`ui/src/desktop/views.ts`): `VIEWS.NOME = {title: 'Título', roles: ['administrador', 'jogador'], nav: true, icon: 'chave', onShow() {}, onHide() {}}`.
    `nav: true` põe a tela na sidebar, na ordem das chaves de `VIEWS`, com o ícone `NAV_ICONS[icon]` (SVG de traço 24×24;
-   crie a chave se precisar) e o texto de `title`; só aparece para quem tem o papel. `onShow`/`onHide` são opcionais.
-   Os listeners da tela vão numa função `init…()` chamada em `ui/src/main.ts`, na ordem em que estão lá.
+   crie a chave em `ui/src/desktop/sidebar-view.tsx` se precisar) e o texto de `title`; só aparece para quem tem o papel. `onShow`/`onHide` são opcionais.
+   Atalhos do `document` da tela vão numa função `init…()` chamada em `ui/src/main.tsx`, na ordem em que estão lá.
    Para mudar a tela inicial, troque `DEFAULT_VIEW`.
 3. Navegue com um link para `#/NOME`, `showView('NOME')` ou `goView('NOME')` (troca na hora). Quem não tem o papel
    volta para a view padrão com um aviso.
