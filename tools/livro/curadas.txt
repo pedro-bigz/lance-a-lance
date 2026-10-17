@@ -1,0 +1,89 @@
+Abertura Italiana|Giuoco Piano|e4 e5 Nf3 Nc6 Bc4 Bc5 c3 Nf6 d4 exd4 cxd4 Bb4+
+Abertura Italiana|Giuoco Pianissimo|e4 e5 Nf3 Nc6 Bc4 Bc5 d3 Nf6 c3 d6 O-O O-O
+Abertura Italiana|Dois Cavalos|e4 e5 Nf3 Nc6 Bc4 Nf6 Ng5 d5 exd5 Na5
+Abertura Italiana|Dois Cavalos com d3|e4 e5 Nf3 Nc6 Bc4 Nf6 d3 Be7 O-O O-O
+Abertura Italiana|Gambito Evans|e4 e5 Nf3 Nc6 Bc4 Bc5 b4 Bxb4 c3 Ba5 d4
+Abertura Italiana|Defesa Húngara|e4 e5 Nf3 Nc6 Bc4 Be7 d4 d6
+Ruy López|Variante Fechada|e4 e5 Nf3 Nc6 Bb5 a6 Ba4 Nf6 O-O Be7 Re1 b5 Bb3 d6 c3 O-O h3
+Ruy López|Defesa Berlim|e4 e5 Nf3 Nc6 Bb5 Nf6 O-O Nxe4 d4 Nd6 Bxc6 dxc6 dxe5 Nf5
+Ruy López|Variante das Trocas|e4 e5 Nf3 Nc6 Bb5 a6 Bxc6 dxc6 O-O f6
+Ruy López|Defesa Steinitz Moderna|e4 e5 Nf3 Nc6 Bb5 a6 Ba4 d6 c3 Bd7
+Abertura Escocesa|Variante Mieses|e4 e5 Nf3 Nc6 d4 exd4 Nxd4 Nf6 Nxc6 bxc6 e5
+Abertura Escocesa|Variante Clássica|e4 e5 Nf3 Nc6 d4 exd4 Nxd4 Bc5 Be3 Qf6 c3
+Defesa Petrov|Linha principal|e4 e5 Nf3 Nf6 Nxe5 d6 Nf3 Nxe4 d4 d5 Bd3
+Defesa Philidor|Linha principal|e4 e5 Nf3 d6 d4 Nf6 Nc3 Nbd7
+Abertura dos Quatro Cavalos|Variante Espanhola|e4 e5 Nf3 Nc6 Nc3 Nf6 Bb5 Bb4 O-O O-O
+Abertura Ponziani|Linha principal|e4 e5 Nf3 Nc6 c3 Nf6 d4
+Abertura Vienense|Gambito Vienense|e4 e5 Nc3 Nf6 f4 d5
+Gambito do Rei|Aceito|e4 e5 f4 exf4 Nf3 g5
+Gambito do Rei|Recusado|e4 e5 f4 Bc5 Nf3 d6
+Abertura do Bispo|Linha principal|e4 e5 Bc4 Nf6 d3 c6
+Abertura Central|Linha principal|e4 e5 d4 exd4 Qxd4 Nc6 Qe3
+Defesa Siciliana|Najdorf|e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 a6 Be3 e5 Nb3 Be6
+Defesa Siciliana|Najdorf|e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 a6 Bg5 e6 f4
+Defesa Siciliana|Dragão|e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 g6 Be3 Bg7 f3 O-O Qd2 Nc6
+Defesa Siciliana|Clássica|e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 Nc6 Bg5 e6
+Defesa Siciliana|Scheveningen|e4 c5 Nf3 e6 d4 cxd4 Nxd4 Nf6 Nc3 d6
+Defesa Siciliana|Taimanov|e4 c5 Nf3 e6 d4 cxd4 Nxd4 Nc6 Nc3 Qc7
+Defesa Siciliana|Kan|e4 c5 Nf3 e6 d4 cxd4 Nxd4 a6 Bd3
+Defesa Siciliana|Sveshnikov|e4 c5 Nf3 Nc6 d4 cxd4 Nxd4 Nf6 Nc3 e5 Ndb5 d6 Bg5 a6 Na3 b5
+Defesa Siciliana|Dragão Acelerado|e4 c5 Nf3 Nc6 d4 cxd4 Nxd4 g6 c4
+Defesa Siciliana|Rossolimo|e4 c5 Nf3 Nc6 Bb5 g6 O-O Bg7
+Defesa Siciliana|Alapin|e4 c5 c3 Nf6 e5 Nd5 d4 cxd4 Nf3
+Defesa Siciliana|Alapin|e4 c5 c3 d5 exd5 Qxd5 d4
+Defesa Siciliana|Fechada|e4 c5 Nc3 Nc6 g3 g6 Bg2 Bg7 d3 d6
+Defesa Siciliana|Variante Moscou|e4 c5 Nf3 d6 Bb5+ Bd7 Bxd7+ Qxd7
+Defesa Siciliana|Gambito Smith-Morra|e4 c5 d4 cxd4 c3 dxc3 Nxc3
+Defesa Francesa|Winawer|e4 e6 d4 d5 Nc3 Bb4 e5 c5 a3 Bxc3+ bxc3 Ne7
+Defesa Francesa|Clássica|e4 e6 d4 d5 Nc3 Nf6 Bg5 Be7 e5 Nfd7
+Defesa Francesa|Variante do Avanço|e4 e6 d4 d5 e5 c5 c3 Nc6 Nf3 Qb6
+Defesa Francesa|Tarrasch|e4 e6 d4 d5 Nd2 Nf6 e5 Nfd7 Bd3 c5 c3 Nc6
+Defesa Francesa|Variante das Trocas|e4 e6 d4 d5 exd5 exd5 Bd3
+Defesa Francesa|Rubinstein|e4 e6 d4 d5 Nc3 dxe4 Nxe4 Nd7
+Defesa Caro-Kann|Clássica|e4 c6 d4 d5 Nc3 dxe4 Nxe4 Bf5 Ng3 Bg6 h4 h6 Nf3 Nd7
+Defesa Caro-Kann|Variante do Avanço|e4 c6 d4 d5 e5 Bf5 Nf3 e6 Be2
+Defesa Caro-Kann|Variante das Trocas|e4 c6 d4 d5 exd5 cxd5 Bd3 Nc6 c3
+Defesa Caro-Kann|Ataque Panov|e4 c6 d4 d5 exd5 cxd5 c4 Nf6 Nc3
+Defesa Caro-Kann|Dois Cavalos|e4 c6 Nc3 d5 Nf3 Bg4
+Defesa Escandinava|Variante Qa5|e4 d5 exd5 Qxd5 Nc3 Qa5 d4 Nf6 Nf3
+Defesa Escandinava|Variante Qd6|e4 d5 exd5 Qxd5 Nc3 Qd6 d4 Nf6
+Defesa Escandinava|Variante Moderna|e4 d5 exd5 Nf6 d4 Nxd5 c4 Nb6
+Defesa Pirc|Linha principal|e4 d6 d4 Nf6 Nc3 g6 Be3 Bg7 Qd2
+Defesa Moderna|Linha principal|e4 g6 d4 Bg7 Nc3 d6
+Defesa Alekhine|Linha principal|e4 Nf6 e5 Nd5 d4 d6 Nf3
+Gambito da Dama|Recusado (Ortodoxa)|d4 d5 c4 e6 Nc3 Nf6 Bg5 Be7 e3 O-O Nf3
+Gambito da Dama|Recusado, Trocas|d4 d5 c4 e6 Nc3 Nf6 cxd5 exd5 Bg5
+Gambito da Dama|Aceito|d4 d5 c4 dxc4 Nf3 Nf6 e3 e6 Bxc4 c5
+Gambito da Dama|Contragambito Albin|d4 d5 c4 e5 dxe5 d4
+Gambito da Dama|Defesa Chigorin|d4 d5 c4 Nc6 Nc3 dxc4 Nf3
+Defesa Eslava|Linha principal|d4 d5 c4 c6 Nf3 Nf6 Nc3 dxc4 a4 Bf5
+Defesa Eslava|Semi-Eslava (Meran)|d4 d5 c4 c6 Nf3 Nf6 Nc3 e6 e3 Nbd7 Bd3 dxc4 Bxc4 b5
+Defesa Eslava|Variante das Trocas|d4 d5 c4 c6 cxd5 cxd5 Nc3 Nf6
+Sistema Londres|Linha principal|d4 d5 Bf4 Nf6 e3 c5 c3 Nc6 Nd2 e6 Ngf3
+Sistema Londres|Contra a Índia do Rei|d4 Nf6 Bf4 g6 e3 Bg7 Nf3
+Sistema Colle|Linha principal|d4 d5 Nf3 Nf6 e3 e6 Bd3 c5 c3
+Defesa Nimzoíndia|Rubinstein|d4 Nf6 c4 e6 Nc3 Bb4 e3 O-O Bd3 d5 Nf3 c5
+Defesa Nimzoíndia|Clássica|d4 Nf6 c4 e6 Nc3 Bb4 Qc2 O-O a3 Bxc3+ Qxc3
+Defesa Índia da Dama|Linha principal|d4 Nf6 c4 e6 Nf3 b6 g3 Ba6 b3
+Defesa Bogo-Índia|Linha principal|d4 Nf6 c4 e6 Nf3 Bb4+ Bd2 Qe7
+Abertura Catalã|Aberta|d4 Nf6 c4 e6 g3 d5 Bg2 Be7 Nf3 O-O O-O dxc4
+Defesa Índia do Rei|Clássica|d4 Nf6 c4 g6 Nc3 Bg7 e4 d6 Nf3 O-O Be2 e5 O-O Nc6 d5 Ne7
+Defesa Índia do Rei|Sämisch|d4 Nf6 c4 g6 Nc3 Bg7 e4 d6 f3 O-O Be3
+Defesa Índia do Rei|Fianchetto|d4 Nf6 c4 g6 Nf3 Bg7 g3 O-O Bg2 d6 O-O
+Defesa Grünfeld|Variante das Trocas|d4 Nf6 c4 g6 Nc3 d5 cxd5 Nxd5 e4 Nxc3 bxc3 Bg7 Nf3 c5
+Defesa Grünfeld|Variante Bf4|d4 Nf6 c4 g6 Nc3 d5 Bf4 Bg7 e3
+Defesa Benoni|Moderna|d4 Nf6 c4 c5 d5 e6 Nc3 exd5 cxd5 d6 e4 g6
+Defesa Benoni|Gambito Benko|d4 Nf6 c4 c5 d5 b5 cxb5 a6 bxa6 Bxa6
+Defesa Holandesa|Clássica|d4 f5 g3 Nf6 Bg2 e6 Nf3 Be7 O-O O-O c4
+Defesa Holandesa|Leningrado|d4 f5 g3 Nf6 Bg2 g6 Nf3 Bg7 O-O O-O c4 d6
+Ataque Trompowsky|Linha principal|d4 Nf6 Bg5 Ne4 Bf4 c5
+Gambito Budapeste|Linha principal|d4 Nf6 c4 e5 dxe5 Ng4
+Abertura Inglesa|Simétrica|c4 c5 Nc3 Nc6 g3 g6 Bg2 Bg7
+Abertura Inglesa|Siciliana Invertida|c4 e5 Nc3 Nf6 g3 d5 cxd5 Nxd5 Bg2 Nb6
+Abertura Inglesa|Quatro Cavalos|c4 e5 Nc3 Nf6 Nf3 Nc6 g3
+Abertura Inglesa|Ataque Mikenas|c4 Nf6 Nc3 e6 e4 d5 e5
+Abertura Réti|Linha principal|Nf3 d5 c4 e6 g3 Nf6 Bg2 Be7 O-O O-O
+Abertura Réti|Contra a Índia do Rei|Nf3 Nf6 c4 g6 g3 Bg7 Bg2 O-O
+Ataque Índio do Rei|Linha principal|Nf3 d5 g3 Nf6 Bg2 c5 O-O Nc6 d3 e5
+Abertura Bird|Linha principal|f4 d5 Nf3 Nf6 e3 g6
+Abertura Larsen|Linha principal|b3 e5 Bb2 Nc6 e3

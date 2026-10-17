@@ -1,0 +1,14 @@
+# dependências e saídas de build
+node_modules/
+desktop/app/
+desktop/dist/
+
+# segredos e configuração local (modelos em .env.example)
+.env
+.env.*
+!.env.example
+api/db/tls/
+
+# sistema
+.DS_Store
+*.log

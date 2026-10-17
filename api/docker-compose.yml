@@ -1,0 +1,40 @@
+# MySQL local do Lance a Lance. Sobe com: docker compose up -d  (ou pnpm db:up)
+# As senhas vêm do api/.env (o compose lê o .env desta pasta). Só aceita conexões deste computador,
+# e só por TLS (require_secure_transport): certificados em db/tls/, gerados por pnpm db:tls.
+# Os usuários da API e das migrações não são criados aqui: rode pnpm db:users depois do primeiro db:up.
+name: lance-a-lance
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: lance-a-lance-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?preencha MYSQL_ROOT_PASSWORD no api/.env}
+      MYSQL_DATABASE: ${DB_NAME:-lance_a_lance}
+      TZ: UTC
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --ssl-ca=/etc/mysql/tls/ca.pem
+      - --ssl-cert=/etc/mysql/tls/server-cert.pem
+      - --ssl-key=/etc/mysql/tls/server-key.pem
+      - --tls-version=TLSv1.2,TLSv1.3
+      - --require-secure-transport=ON
+    ports:
+      - "127.0.0.1:${DB_PORT:-3307}:3306"
+    volumes:
+      - lance-a-lance-mysql:/var/lib/mysql
+      # só o necessário ao servidor (a chave da CA, db/tls/ca-key.pem, fica fora do container)
+      - ./db/tls/ca.pem:/etc/mysql/tls/ca.pem:ro
+      - ./db/tls/server-cert.pem:/etc/mysql/tls/server-cert.pem:ro
+      - ./db/tls/server-key.pem:/etc/mysql/tls/server-key.pem:ro
+    healthcheck:
+      # senha por variável de ambiente (MYSQL_PWD), não na linha de comando; TCP usa TLS
+      test: ["CMD-SHELL", "MYSQL_PWD=\"$$MYSQL_ROOT_PASSWORD\" mysqladmin ping -h 127.0.0.1 -uroot --ssl-mode=REQUIRED --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+volumes:
+  lance-a-lance-mysql:

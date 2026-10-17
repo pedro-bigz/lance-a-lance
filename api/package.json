@@ -1,0 +1,25 @@
+{
+  "name": "lance-a-lance-api",
+  "version": "1.2.0",
+  "description": "API do Lance a Lance: contas de usuário (MySQL + JWT), partidas e estatísticas, e tutor de IA, que intermedia Gemini, DeepSeek e OpenRouter (com fallback automático) e guarda as chaves.",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.13.1",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node --env-file=.env server.mjs",
+    "dev": "node --watch --env-file=.env server.mjs",
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose stop",
+    "db:tls": "bash scripts/db-tls.sh",
+    "db:users": "node --env-file=.env scripts/db-users.mjs",
+    "db:migrate": "node --env-file=.env scripts/migrate.mjs",
+    "db:backup": "bash scripts/backup-db.sh",
+    "test": "node --test \"test/**/*.test.mjs\""
+  },
+  "dependencies": {
+    "mysql2": "^3.24.6"
+  }
+}

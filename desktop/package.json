@@ -1,0 +1,39 @@
+{
+  "name": "lance-a-lance",
+  "productName": "Lance a Lance",
+  "version": "3.5.1",
+  "description": "Jogue xadrez contra bots e veja cada lance avaliado pelo Stockfish.",
+  "author": {
+    "name": "pedro-bigz",
+    "url": "https://github.com/pedro-bigz"
+  },
+  "homepage": "https://github.com/pedro-bigz/lance-a-lance",
+  "license": "GPL-3.0-or-later",
+  "private": true,
+  "main": "main.js",
+  "packageManager": "pnpm@10.13.1",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "prepare:app": "node scripts/prepare.mjs",
+    "start": "node scripts/prepare.mjs && electron .",
+    "icons": "python3 scripts/build-icon.py",
+    "dist": "node scripts/prepare.mjs && electron-builder --publish never",
+    "dist:mac": "node scripts/prepare.mjs && electron-builder --mac --publish never",
+    "dist:win": "node scripts/prepare.mjs && electron-builder --win --publish never",
+    "dist:linux": "node scripts/prepare.mjs && electron-builder --linux --publish never"
+  },
+  "devDependencies": {
+    "electron": "^44.5.1",
+    "electron-builder": "^26.15.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "electron"
+    ],
+    "ignoredBuiltDependencies": [
+      "electron-winstaller"
+    ]
+  }
+}

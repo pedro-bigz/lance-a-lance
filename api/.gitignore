@@ -1,0 +1,4 @@
+node_modules/
+.env
+# certificados e chaves TLS do MySQL (pnpm db:tls): nunca no git
+db/tls/

@@ -1,0 +1,55 @@
+# Instaladores: macOS (.dmg), Windows (instalador NSIS .exe) e Linux (.AppImage e .deb).
+# O ideal é gerar cada sistema no próprio sistema (ver .github/workflows/desktop.yml).
+appId: io.github.pedro-bigz.lance-a-lance
+productName: Lance a Lance
+copyright: Copyright © 2026 pedro-bigz
+directories:
+  output: dist
+  buildResources: build
+files:
+  - main.js
+  - preload.js
+  - .env
+  - app/**
+  - package.json
+# Sem dependências nativas: o Stockfish roda em JavaScript dentro do app.
+npmRebuild: false
+artifactName: LanceALance-${version}-${os}-${arch}.${ext}
+
+mac:
+  category: public.app-category.board-games
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+  # Assinatura ad-hoc ("-"), sem certificado Developer ID: na primeira abertura o macOS pede
+  # confirmação (ver README). Para distribuir sem esse aviso, use uma identidade Developer ID e notarize.
+  identity: '-'
+  hardenedRuntime: false
+  notarize: false
+dmg:
+  title: ${productName} ${version}
+
+win:
+  target:
+    - target: nsis
+      arch: [x64, arm64]
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Lance a Lance
+  uninstallDisplayName: Lance a Lance
+
+linux:
+  target:
+    - target: AppImage
+      arch: [x64, arm64]
+    - target: deb
+      arch: [x64, arm64]
+  category: Game
+  executableName: lance-a-lance
+  synopsis: Xadrez contra bots com avaliação de cada lance
+  description: Jogue xadrez contra bots de vários níveis e veja cada lance classificado pelo Stockfish.
+  maintainer: pedro-bigz <pedro-bigz@users.noreply.github.com>
