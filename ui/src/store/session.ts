@@ -9,8 +9,7 @@ import { S, botColor, findBot, sideName } from '../core/state';
 import { openingAt } from '../book/index';
 import { requestAnalysis } from '../engine/analysis';
 import { ACCOUNT } from '../desktop/account';
-import { currentView, viewDataChanged } from '../desktop/views';
-import { loadStats } from '../desktop/stats';
+import { refreshIfCurrent, viewDataChanged } from '../desktop/views';
 import { renderHistCount, renderHistory, openRecord } from '../game/history';
 import { renderPlayers } from '../game/panel';
 import { RATING, RATING_UI, animateRating, applyRatingIfDone, renderRating } from '../game/rating';
@@ -19,7 +18,7 @@ import { $ } from '../ui/dom';
 import { boardCtx } from './contexts';
 import { LEGACY_SID, UUID_RE } from './convert';
 import { GameStore, type SaveResponse } from './game-store';
-import { lsGet, lsSet, newId } from './local';
+import { arrayOf, isStr, lsGet, lsSet, newId } from './local';
 import type { BoardMode, GameMode, SaveRecord } from './types';
 
 // partida aberta no tabuleiro, para retomar ao reabrir. No desktop a chave é por usuário (veja bootApp)
@@ -245,7 +244,7 @@ export function onGameSaved(rec: SaveRecord, resp: SaveResponse, created: boolea
   viewDataChanged(created || !!(resp && resp.game && resp.game.status === 'concluida'));
   if (!resp || !resp.game || resp.game.status !== 'concluida') return;
   const ch = resp.rating_change,
-    seen = lsGet<string[]>(ANIM_KEY(), []);
+    seen = lsGet<string[]>(ANIM_KEY(), [], arrayOf(isStr));
   if (ch && !seen.includes(rec.id)) {
     lsSet(ANIM_KEY(), [...seen, rec.id].slice(-50));
     RATING.rating = resp.rating;
@@ -256,7 +255,7 @@ export function onGameSaved(rec: SaveRecord, resp: SaveResponse, created: boolea
     renderRating();
     renderPlayers();
   }
-  if (currentView() === 'estatisticas') loadStats();
+  refreshIfCurrent('estatisticas');
 }
 // sem partida guardada neste computador: retoma a última partida contra bot em andamento na conta
 export async function resumeFromApi(): Promise<void> {

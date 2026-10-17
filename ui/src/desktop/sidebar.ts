@@ -2,7 +2,7 @@
    Recolhida ou aberta fica lembrado no localStorage (lance-a-lance:sidebar:v1). Em janela de até 900 px vira gaveta:
    o botão de menu do topo abre, e ela fecha ao navegar, com Esc ou clicando fora. */
 import { closePop, openNewPop, setMenu } from '../game/menus';
-import { SIDEBAR_KEY, lsGet, lsSet } from '../store/local';
+import { SIDEBAR_KEY, isStr, lsGet, lsSet } from '../store/local';
 import { $, $opt, target } from '../ui/dom';
 import { setUserPop } from './account';
 import { goView, renderViewNav } from './views';
@@ -37,7 +37,7 @@ export function setSide(open: boolean, focusBtn?: boolean): void {
 export function initSidebar(): void {
   document.documentElement.classList.add('has-sidebar');
   $('#sidebar').hidden = false;
-  setCollapsed(lsGet<string>(SIDEBAR_KEY, 'aberta') === 'recolhida');
+  setCollapsed(lsGet<string>(SIDEBAR_KEY, 'aberta', isStr) === 'recolhida');
   setSide(false);
 }
 // "Nova partida": vai para o tabuleiro e abre a mesma escolha de nível do botão do topo. A partida em andamento

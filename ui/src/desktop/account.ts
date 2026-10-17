@@ -10,6 +10,7 @@ import { $, target } from '../ui/dom';
 import { busy, clearInvalid, formMsg, invalid } from '../ui/forms';
 import { roleName } from './admin';
 import { DESKTOP_AUTH } from './bridge';
+import { mountIslands } from './islands';
 import { initSidebar } from './sidebar';
 import { canView, renderViewNav, startRouter } from './views';
 
@@ -62,6 +63,7 @@ export function enterApp(user: ApiUser, legacyId?: string | null): void {
   initSidebar();
   renderAccount();
   bootApp();
+  mountIslands(); // telas React (Início, Histórico, Estatísticas, Administração e o perfil), antes do roteamento
   startRouter();
 }
 // sair ou perder a sessão recarrega a página: a área do jogo some, o motor para e volta o login

@@ -132,7 +132,9 @@
   </nav>
 </header>
 
-<!-- Telas: cada uma é uma <section class="view" data-view="NOME"> registrada em VIEWS (veja "Telas do app desktop" no script) -->
+<!-- Telas: cada uma é uma <section class="view" data-view="NOME"> registrada em VIEWS (veja "Telas do app desktop" no script).
+     Início, Histórico, Administração e Estatísticas ficam vazias aqui: o conteúdo (e os modais delas e o do perfil) vem
+     das ilhas React de src/desktop (veja islands.tsx). -->
 <section class="view" data-view="jogo" aria-label="Jogo">
 <section class="card drawer" id="pgnBox" hidden aria-label="Analisar uma partida">
   <div class="drawer-h"><h2>Analisar uma partida (PGN)</h2><button class="btn icon" data-close aria-label="Fechar">&#x2715;</button></div>
@@ -240,103 +242,13 @@
 </footer>
 </section>
 
-<section class="view home" data-view="inicio" hidden aria-labelledby="homeHello">
-  <div class="card home-hero">
-    <div>
-      <span class="eyebrow" id="homeDate"></span>
-      <h2 id="homeHello">Olá</h2>
-      <p id="homeSub">Jogue contra um bot e veja cada lance avaliado pelo Stockfish, do brilhante à capivarada.</p>
-      <div class="home-cta">
-        <button class="btn primary" id="homeNew">Nova partida</button>
-        <a class="btn" href="#/estatisticas">Ver estatísticas</a>
-      </div>
-    </div>
-    <div class="home-rating" aria-live="polite"><span class="lab">Sua pontuação</span><b id="homeRating">—</b><small id="homeRec"></small></div>
-  </div>
-  <p class="form-msg" id="homeMsg" role="status" hidden></p>
-  <div class="home-grid">
-    <div class="card home-continue" id="homeContinue"></div>
-    <div class="card home-sum" id="homeSummary"></div>
-  </div>
-  <div class="card home-recent">
-    <div class="home-card-h"><h2>Últimas partidas</h2><a href="#/historico">Ver histórico completo →</a></div>
-    <ul class="hist-list" id="homeRecent"></ul>
-  </div>
-</section>
+<section class="view home" data-view="inicio" hidden aria-labelledby="homeHello"></section>
 
-<section class="view histpage" data-view="historico" hidden aria-labelledby="hpTtl">
-  <div class="admin-h">
-    <div><h2 id="hpTtl">Histórico de partidas</h2><p>Toda partida é salva sozinha. As em andamento continuam de onde pararam; as concluídas abrem para revisão.</p></div>
-    <button class="btn" id="hpReload">Atualizar</button>
-  </div>
-  <div class="histpage-tools">
-    <div class="histpage-filters">
-      <div class="seg" id="hpStatus" role="group" aria-label="Situação da partida">
-        <button data-f="todas" aria-pressed="true">Todas</button>
-        <button data-f="andamento" aria-pressed="false">Em andamento</button>
-        <button data-f="concluida" aria-pressed="false">Concluídas</button>
-      </div>
-      <div class="seg" id="hpResult" role="group" aria-label="Resultado">
-        <button data-r="todos" aria-pressed="true">Qualquer resultado</button>
-        <button data-r="vitoria" aria-pressed="false">Vitórias</button>
-        <button data-r="derrota" aria-pressed="false">Derrotas</button>
-        <button data-r="empate" aria-pressed="false">Empates</button>
-        <button data-r="outras" aria-pressed="false">Outras</button>
-      </div>
-    </div>
-    <span class="histpage-count" id="hpCount" aria-live="polite"></span>
-  </div>
-  <p class="form-msg" id="hpMsg" role="status" hidden></p>
-  <ul class="hist-list" id="hpList"></ul>
-  <div class="histpage-more" id="hpMoreWrap" hidden><button class="btn" id="hpMore">Carregar mais</button></div>
-</section>
+<section class="view histpage" data-view="historico" hidden aria-labelledby="hpTtl"></section>
 
-<section class="view admin" data-view="admin" hidden aria-labelledby="adminTtl">
-  <div class="admin-h">
-    <div><h2 id="adminTtl">Painel de administração</h2><p>Contas, papéis e acesso ao Lance a Lance.</p></div>
-    <button class="btn primary" id="adminNew">Novo usuário</button>
-  </div>
-  <div class="admin-tools">
-    <input class="admin-search" id="adminSearch" type="search" placeholder="Buscar por nome ou e-mail" aria-label="Buscar usuários" maxlength="100" autocomplete="off">
-    <button class="btn" id="adminReload">Atualizar</button>
-  </div>
-  <p class="form-msg" id="adminMsg" role="status" hidden></p>
-  <div class="card admin-card">
-    <div class="admin-scroll">
-      <table class="admin-table">
-        <thead><tr><th>Nome</th><th>E-mail</th><th>Papel</th><th>Status</th><th class="u-date">Criado em</th><th style="text-align:right">Ações</th></tr></thead>
-        <tbody id="adminRows"></tbody>
-      </table>
-    </div>
-    <div class="admin-foot"><span id="adminCount"></span><span class="row"><button class="btn" id="adminPrev">Anterior</button><button class="btn" id="adminNext">Próxima</button></span></div>
-  </div>
-</section>
+<section class="view admin" data-view="admin" hidden aria-labelledby="adminTtl"></section>
 
-<section class="view stats" data-view="estatisticas" hidden aria-labelledby="statsTtl">
-  <div class="admin-h">
-    <div><h2 id="statsTtl">Estatísticas</h2><p>Seus resultados, a qualidade dos seus lances e a evolução da pontuação.</p></div>
-    <button class="btn" id="statsReload">Atualizar</button>
-  </div>
-  <p class="form-msg" id="statsMsg" role="status" hidden></p>
-  <div class="stat-cards" id="statCards" aria-live="polite"></div>
-  <div class="card rchart-card">
-    <div class="card-h rchart-h"><div><h2>Evolução da pontuação</h2><small class="rchart-sub" id="rchartSub"></small></div>
-      <div class="seg rchart-range" id="statsRange" role="group" aria-label="Período do gráfico">
-        <button data-r="7" aria-pressed="false">7 dias</button><button data-r="30" aria-pressed="true">30 dias</button><button data-r="90" aria-pressed="false">90 dias</button><button data-r="365" aria-pressed="false">1 ano</button><button data-r="all" aria-pressed="false">Tudo</button>
-      </div>
-    </div>
-    <div class="rchart" id="ratingChart"></div>
-  </div>
-  <div class="card cls-card">
-    <div class="card-h"><h2>Seus lances por classificação</h2><span class="status" id="clsNote"></span></div>
-    <div class="admin-scroll">
-      <table class="admin-table cls-table">
-        <thead><tr><th>Classificação</th><th class="num">Total</th><th class="num">Média por partida</th><th class="cls-bar-h" aria-hidden="true"></th></tr></thead>
-        <tbody id="clsRows"></tbody>
-      </table>
-    </div>
-  </div>
-</section>
+<section class="view stats" data-view="estatisticas" hidden aria-labelledby="statsTtl"></section>
 
 <section class="tutor card" id="tutor" hidden aria-label="Tutor de aberturas">
   <div class="tutor-h"><div><h2>Tutor de aberturas</h2><small id="tutorSub">treinos, exemplos e explicações</small></div><div class="tutor-hb"><button class="btn icon" id="tutorClose" aria-label="Fechar">&#x2715;</button></div></div>
@@ -380,64 +292,7 @@
     </div>
   </div>
 </div>
-
-<div class="modal" id="profileModal" hidden>
-  <form class="card modal-card profile-card" id="profileForm" role="dialog" aria-modal="true" aria-labelledby="profileTtl" tabindex="-1" novalidate>
-    <div class="drawer-h"><h2 id="profileTtl">Seu perfil</h2><button type="button" class="btn icon" id="profileClose" aria-label="Fechar">&#x2715;</button></div>
-    <div class="form-grid">
-      <label class="auth-field"><span>Nome</span><input id="pfFirst" autocomplete="given-name" maxlength="100" required></label>
-      <label class="auth-field"><span>Sobrenome</span><input id="pfLast" autocomplete="family-name" maxlength="100" required></label>
-      <label class="auth-field wide"><span>E-mail</span><input id="pfEmail" type="email" autocomplete="email" inputmode="email" maxlength="255" required></label>
-    </div>
-    <fieldset class="pw-box">
-      <legend>Trocar senha <small>(opcional)</small></legend>
-      <label class="auth-field"><span>Senha atual</span><input id="pfCur" type="password" autocomplete="current-password" maxlength="200"></label>
-      <div class="form-grid">
-        <label class="auth-field"><span>Nova senha</span><input id="pfNew" type="password" autocomplete="new-password" minlength="8" maxlength="200"><small>Mínimo de 8 caracteres</small></label>
-        <label class="auth-field"><span>Confirmar nova senha</span><input id="pfNew2" type="password" autocomplete="new-password" minlength="8" maxlength="200"></label>
-      </div>
-    </fieldset>
-    <p class="form-msg" id="profileMsg" role="alert" hidden></p>
-    <div class="row"><button type="button" class="btn" id="profileCancel">Fechar</button><button class="btn primary" type="submit" id="profileSave">Salvar alterações</button></div>
-  </form>
-</div>
-
-<div class="modal" id="adminUserModal" hidden>
-  <form class="card modal-card admin-modal-card" id="adminUserForm" role="dialog" aria-modal="true" aria-labelledby="adminUserTtl" tabindex="-1" novalidate>
-    <div class="drawer-h"><h2 id="adminUserTtl">Novo usuário</h2><button type="button" class="btn icon" id="adminUserClose" aria-label="Fechar">&#x2715;</button></div>
-    <div class="form-grid">
-      <label class="auth-field"><span>Nome</span><input id="auFirst" autocomplete="off" maxlength="100" required></label>
-      <label class="auth-field"><span>Sobrenome</span><input id="auLast" autocomplete="off" maxlength="100" required></label>
-      <label class="auth-field wide"><span>E-mail</span><input id="auEmail" type="email" autocomplete="off" inputmode="email" maxlength="255" required></label>
-      <label class="auth-field"><span>Senha</span><input id="auPass" type="password" autocomplete="new-password" minlength="8" maxlength="200"><small id="auPassHint">Mínimo de 8 caracteres</small></label>
-      <label class="auth-field"><span>Papel</span><select id="auRole"></select></label>
-    </div>
-    <div class="admin-flags" id="auFlags">
-      <label class="switch" for="auActive"><input type="checkbox" id="auActive" role="switch"><span class="track" aria-hidden="true"></span><span>Conta ativa</span></label>
-      <label class="switch" for="auForbidden"><input type="checkbox" id="auForbidden" role="switch"><span class="track" aria-hidden="true"></span><span>Bloqueada</span></label>
-    </div>
-    <p class="form-msg" id="adminUserMsg" role="alert" hidden></p>
-    <div class="row"><button type="button" class="btn" id="adminUserCancel">Cancelar</button><button class="btn primary" type="submit" id="adminUserSave">Salvar</button></div>
-  </form>
-</div>
-
-<div class="modal" id="adminConfirmModal" hidden>
-  <div class="card modal-card confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="adminConfirmTtl" aria-describedby="adminConfirmTxt" tabindex="-1">
-    <h2 id="adminConfirmTtl">Excluir usuário</h2>
-    <p id="adminConfirmTxt"></p>
-    <p class="form-msg" id="adminConfirmMsg" role="alert" hidden></p>
-    <div class="row" style="justify-content:flex-end;margin-top:0"><button class="btn" id="adminConfirmNo">Cancelar</button><button class="btn danger-solid" id="adminConfirmYes">Excluir definitivamente</button></div>
-  </div>
-</div>
-
-<div class="modal" id="gameConfirmModal" hidden>
-  <div class="card modal-card confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="gameConfirmTtl" aria-describedby="gameConfirmTxt" tabindex="-1">
-    <h2 id="gameConfirmTtl">Excluir partida</h2>
-    <p id="gameConfirmTxt"></p>
-    <p class="form-msg" id="gameConfirmMsg" role="alert" hidden></p>
-    <div class="row" style="justify-content:flex-end;margin-top:0"><button class="btn" id="gameConfirmNo">Cancelar</button><button class="btn danger-solid" id="gameConfirmYes">Excluir partida</button></div>
-  </div>
-</div>
+<!-- modais das ilhas React (perfil, usuário, exclusão de usuário e de partida) entram aqui, por createPortal -->
 </div>
 <script type="module" src="/src/main.ts"></script>
 </body>
