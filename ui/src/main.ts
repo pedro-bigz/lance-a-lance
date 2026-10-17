@@ -7,13 +7,9 @@ import { initBoardInput } from './board/input';
 import { initStylePicker } from './board/style-picker';
 import { engine } from './engine/engine';
 import { ACCOUNT, enterApp, initAuthForms, initUserMenu, leaveApp, showAuth, authError } from './desktop/account';
-import { initAdmin } from './desktop/admin';
 import { DESKTOP_AUTH } from './desktop/bridge';
-import { initHistoryPage } from './desktop/history-page';
-import { initHome } from './desktop/home';
 import { initProfile } from './desktop/profile';
 import { initSidebarControls } from './desktop/sidebar';
-import { initStats } from './desktop/stats';
 import { initViews } from './desktop/views';
 import { initGameControls, initNav, initReplayButton } from './game/controls';
 import { initHistoryModal } from './game/history';
@@ -54,10 +50,6 @@ initUserMenu();
 initProfile();
 initViews();
 initSidebarControls();
-initHome();
-initHistoryPage();
-initAdmin();
-initStats();
 
 if (DESKTOP_AUTH) {
   DESKTOP_AUTH.onExpired((info) => {

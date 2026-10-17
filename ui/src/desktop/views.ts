@@ -16,6 +16,9 @@
    cada tela (partida, bot, Stockfish) continua vivo. Os controles do topo que só servem ao jogo levam a classe
    game-only e somem nas outras views (o topo inteiro some quando não sobra nada nele; em janela estreita ele fica,
    com o botão que abre a sidebar como gaveta). Quando uma partida é gravada, viewDataChanged() avisa a view aberta.
+   Ilhas React: Início, Histórico, Estatísticas e Administração são componentes React montados dentro da própria section
+   (desktop/islands.tsx). O onShow delas só chama refreshView('NOME'), que publica o tópico 'tela:NOME'
+   (store/data-events.ts); a ilha assina com useViewRefresh e recarrega.
    No artifact (sem window.lanceDesktop) não há sidebar nem roteamento: só a view do jogo aparece. */
 import { renderBoard } from '../board/render';
 import { closeStyle } from '../board/style-picker';
@@ -27,12 +30,9 @@ import { $, $opt } from '../ui/dom';
 import { esc } from '../ui/escape';
 import { viewToast } from '../ui/toast';
 import { ACCOUNT, setUserPop } from './account';
-import { adminShow } from './admin';
+import { emit } from '../store/data-events';
 import { DESKTOP_AUTH } from './bridge';
-import { loadHistPage } from './history-page';
-import { renderHome } from './home';
 import { NARROW, setSide } from './sidebar';
-import { statsShow } from './stats';
 
 const ALL_ROLES = ['administrador', 'jogador'];
 export interface ViewDef {
@@ -46,12 +46,12 @@ export interface ViewDef {
   onHide?: () => void;
 }
 export const VIEWS: Record<string, ViewDef> = {
-  inicio: { title: 'Início', roles: ALL_ROLES, nav: true, icon: 'inicio', onShow: () => renderHome() },
+  inicio: { title: 'Início', roles: ALL_ROLES, nav: true, icon: 'inicio', onShow: () => refreshView('inicio') },
   jogo: { title: 'Tabuleiro', roles: ALL_ROLES, nav: true, icon: 'jogo' },
   aberturas: { title: 'Aberturas', roles: ALL_ROLES, nav: true, icon: 'aberturas', alias: 'jogo', ctx: 'estudo', onShow: () => setStudy(true) },
-  estatisticas: { title: 'Estatísticas', roles: ALL_ROLES, nav: true, icon: 'estatisticas', onShow: () => statsShow() },
-  historico: { title: 'Histórico', roles: ALL_ROLES, nav: true, icon: 'historico', onShow: () => loadHistPage(true) },
-  admin: { title: 'Administração', roles: ['administrador'], nav: true, icon: 'admin', onShow: () => adminShow() },
+  estatisticas: { title: 'Estatísticas', roles: ALL_ROLES, nav: true, icon: 'estatisticas', onShow: () => refreshView('estatisticas') },
+  historico: { title: 'Histórico', roles: ALL_ROLES, nav: true, icon: 'historico', onShow: () => refreshView('historico') },
+  admin: { title: 'Administração', roles: ['administrador'], nav: true, icon: 'admin', onShow: () => refreshView('admin') },
 };
 const NAV_ICONS: Record<string, string> = {
   inicio: '<path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9v11h5v-6h3v6h5V9"/>',
@@ -67,6 +67,14 @@ export const DEFAULT_VIEW = DESKTOP_AUTH ? 'inicio' : 'jogo';
 let CURRENT_VIEW: string | null = null;
 let CURRENT_ROUTE: string | null = null; // item da sidebar aberto (difere de CURRENT_VIEW nos atalhos, ex.: aberturas → jogo)
 export const currentView = (): string | null => CURRENT_VIEW;
+/** pede à ilha React da tela que recarregue os dados (tópico 'tela:NOME'; veja store/data-events.ts) */
+export function refreshView(name: string): void {
+  emit('tela:' + name);
+}
+/** idem, só se a tela for a que está aberta (as outras recarregam quando forem abertas) */
+export function refreshIfCurrent(name: string): void {
+  if (CURRENT_VIEW === name) refreshView(name);
+}
 export const canView = (name: string, user: ApiUser | null = ACCOUNT.user): boolean =>
   !!(VIEWS[name] && user && VIEWS[name].roles.includes(user.role));
 const viewFromHash = () => {
@@ -144,8 +152,8 @@ export function viewDataChanged(important: boolean): void {
   if (!important) return;
   clearTimeout(viewDataTimer);
   viewDataTimer = setTimeout(() => {
-    if (CURRENT_VIEW === 'inicio') renderHome();
-    else if (CURRENT_VIEW === 'historico') loadHistPage(true);
+    refreshIfCurrent('inicio');
+    refreshIfCurrent('historico');
   }, 300);
 }
 export function initViews(): void {

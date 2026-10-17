@@ -9,8 +9,7 @@ import { S, botColor, findBot, sideName } from '../core/state';
 import { openingAt } from '../book/index';
 import { requestAnalysis } from '../engine/analysis';
 import { ACCOUNT } from '../desktop/account';
-import { currentView, viewDataChanged } from '../desktop/views';
-import { loadStats } from '../desktop/stats';
+import { refreshIfCurrent, viewDataChanged } from '../desktop/views';
 import { renderHistCount, renderHistory, openRecord } from '../game/history';
 import { renderPlayers } from '../game/panel';
 import { RATING, RATING_UI, animateRating, applyRatingIfDone, renderRating } from '../game/rating';
@@ -256,7 +255,7 @@ export function onGameSaved(rec: SaveRecord, resp: SaveResponse, created: boolea
     renderRating();
     renderPlayers();
   }
-  if (currentView() === 'estatisticas') loadStats();
+  refreshIfCurrent('estatisticas');
 }
 // sem partida guardada neste computador: retoma a última partida contra bot em andamento na conta
 export async function resumeFromApi(): Promise<void> {
