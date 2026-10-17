@@ -1,0 +1,45 @@
+/* Conta do usuário (app desktop): telas de login e cadastro, avatar no topo e perfil */
+:root[data-theme="light"]{color-scheme:light}
+.needs-auth #appRoot{display:none!important}
+.auth{min-height:calc(100dvh - 60px);display:grid;place-items:center;padding:12px 0}
+.auth-card{width:min(420px,100%);padding:26px 24px 22px;display:flex;flex-direction:column;gap:18px;box-shadow:0 24px 60px -28px rgba(0,0,0,.35)}
+.auth-brand{justify-content:center}
+.auth-form{display:flex;flex-direction:column;gap:12px}
+.auth-form h2{font-family:var(--f-display);font-weight:800;font-size:22px;letter-spacing:-.01em;margin:0}
+.auth-sub{margin:-6px 0 2px;color:var(--muted);font-size:14px}
+.auth-field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.auth-field>span{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.auth-field small{color:var(--muted);font-size:12px}
+.auth-field input{width:100%;min-height:42px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);padding:9px 12px;font:inherit;font-size:15px}
+.auth-field input:hover{border-color:var(--muted)}
+.auth-field input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.auth-field input[aria-invalid="true"]{border-color:var(--danger)}
+.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.form-grid .wide{grid-column:1 / -1}
+@media (max-width:420px){.form-grid{grid-template-columns:minmax(0,1fr)}}
+.auth-submit{justify-content:center;min-height:44px;font-size:15px;margin-top:4px}
+.auth-switch{margin:2px 0 0;text-align:center;font-size:14px;color:var(--muted)}
+.link-btn{border:0;background:none;padding:2px 2px;font-weight:700;color:var(--accent);text-decoration:underline;text-underline-offset:3px}
+.link-btn:hover{text-decoration-thickness:2px}
+.form-msg{margin:0;padding:9px 12px;border-radius:8px;font-size:13.5px;line-height:1.4;border:1px solid transparent}
+.form-msg.err{color:var(--danger);background:var(--danger-soft);border-color:color-mix(in srgb,var(--danger) 35%,transparent)}
+.form-msg.ok{color:var(--success);background:var(--success-soft);border-color:color-mix(in srgb,var(--success) 35%,transparent)}
+.form-msg.info{color:var(--ink);background:var(--surface-2);border-color:var(--line)}
+.btn[aria-busy="true"]{opacity:.7;cursor:progress}
+.user-btn{width:36px;height:36px;border-radius:50%;border:0;background:var(--accent);color:var(--accent-ink);font-family:var(--f-display);font-weight:800;font-size:14px;letter-spacing:.02em;display:grid;place-items:center;padding:0;flex:none}
+.user-btn:hover{box-shadow:0 0 0 3px var(--accent-soft)}
+.user-btn[aria-expanded="true"]{box-shadow:0 0 0 3px var(--accent-soft),inset 0 0 0 2px var(--accent-ink)}
+.user-btn.big{width:42px;height:42px;font-size:16px;cursor:default}
+.user-btn.big:hover{box-shadow:none}
+.pop.user-pop{right:0;width:min(340px,calc(100vw - 32px));display:flex;flex-direction:column;gap:12px;padding:14px}
+.user-head{display:flex;align-items:center;gap:12px;min-width:0}
+.user-head div{display:flex;flex-direction:column;min-width:0}
+.user-head b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-head small{color:var(--muted);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-pop .seg button{flex:auto;font-size:13px;padding:7px 10px;white-space:nowrap}
+.menu-item.danger-item{color:var(--danger)}
+.profile-card{width:min(520px,100%);overflow:auto}
+.pw-box{border:1px solid var(--line);border-radius:10px;padding:10px 12px 12px;margin:0;display:flex;flex-direction:column;gap:10px}
+.pw-box legend{font-weight:700;font-size:13px;padding:0 4px}
+.pw-box legend small{font-weight:500;color:var(--muted)}
+.profile-card .row{justify-content:flex-end;margin-top:0}

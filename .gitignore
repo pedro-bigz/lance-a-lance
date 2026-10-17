@@ -1,5 +1,7 @@
 # dependências e saídas de build
 node_modules/
+ui/node_modules/
+ui/dist/
 desktop/app/
 desktop/dist/
 

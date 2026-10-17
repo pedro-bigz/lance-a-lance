@@ -1,0 +1,35 @@
+/* Histórico de partidas (modal) */
+.modal{position:fixed;inset:0;z-index:60;background:rgba(8,12,10,.55);display:grid;place-items:center;padding:16px}
+.modal-card{width:min(680px,100%);max-height:calc(100dvh - 32px);display:flex;flex-direction:column;gap:12px;box-shadow:0 24px 60px -20px rgba(0,0,0,.6)}
+.modal-card:focus{outline:none}
+.hist-tools{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between}
+.hist-tools .seg button{padding:6px 12px;white-space:nowrap}
+.hist-legend{display:flex;gap:6px 12px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.hist-legend span{display:inline-flex;align-items:center;gap:5px}
+.hist-legend i{width:10px;height:10px;border-radius:3px;background:var(--st)}
+.hist-list{list-style:none;margin:0;padding:0 2px 2px 0;overflow-y:auto;display:flex;flex-direction:column;gap:8px;min-height:120px}
+.hist-item{--st:var(--muted);display:flex;align-items:stretch;border:1px solid var(--line);border-left:5px solid var(--st);border-radius:10px;background:var(--surface-2)}
+.hist-item.andamento{border-style:dashed;border-left-style:solid;background:var(--surface)}
+.hist-item.current{box-shadow:0 0 0 2px var(--accent)}
+.hist-open{flex:1;min-width:0;display:flex;align-items:center;gap:12px;border:0;background:none;text-align:left;padding:10px 12px;border-radius:10px 0 0 10px}
+.hist-open:hover{background:var(--surface)}
+.hist-ico{font-family:var(--f-piece);font-size:28px;line-height:1;width:32px;text-align:center;flex:none}
+.hist-ico.w{color:#fbfbf8;text-shadow:0 0 1px #111,0 0 1px #111,0 0 1px #111}
+.hist-ico.b{color:#1c1e1d;text-shadow:0 0 1px rgba(255,255,255,.4)}
+.hist-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.hist-main b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hist-main small{color:var(--muted);font-size:12.5px}
+.hist-side{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:none}
+.chip{font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--st);color:#fff;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+.hist-item.andamento .chip{background:transparent;color:var(--st);border:1px solid var(--st)}
+.hist-item.andamento .chip::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--st);animation:blink 1.4s ease-in-out infinite}
+@keyframes blink{50%{opacity:.25}}
+.hist-act{font-size:12px;color:var(--muted);white-space:nowrap}
+.hist-del{border:0;border-left:1px solid var(--line);background:none;padding:0 12px;font-size:12px;font-weight:600;color:var(--muted);border-radius:0 10px 10px 0;min-width:76px}
+.hist-del:hover{color:var(--c-capivarada)}
+.hist-del.armed{background:var(--c-capivarada);color:#fff}
+.st-vitoria{--st:var(--c-melhor)} .st-derrota{--st:var(--c-capivarada)} .st-empate{--st:#8a94a0} .st-andamento{--st:var(--c-otima)} .st-neutra{--st:var(--c-boa)}
+.mock-tag{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:0 4px;margin-left:6px;font-weight:600;vertical-align:middle}
+.hist-empty{color:var(--muted);text-align:center;padding:24px 8px;margin:0}
+.hist-foot{margin-top:0;justify-content:space-between;align-items:center}
+@media (max-width:520px){.hist-act{display:none}.hist-del{min-width:64px;padding:0 8px}}

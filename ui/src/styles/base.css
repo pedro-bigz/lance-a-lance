@@ -1,0 +1,16 @@
+*{box-sizing:border-box}
+html,body{background:var(--bg);color:var(--ink)}
+body{font-family:var(--f-body);font-size:15px;line-height:1.45;padding-inline:16px;padding-block:20px 40px}
+button,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.top{max-width:1080px;margin:0 auto 18px;display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 18px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand .logo{font-family:var(--f-piece);font-size:30px;line-height:1;color:var(--accent)}
+.brand h1{font-family:var(--f-display);font-weight:800;font-size:28px;letter-spacing:-.02em;margin:0}
+.top p{margin:0;color:var(--muted);text-wrap:balance}
+
+.layout{max-width:1080px;margin:0 auto;display:grid;grid-template-columns:minmax(0,600px) minmax(0,440px);gap:24px;justify-content:center;align-items:start}
+@media (max-width:920px){.layout{grid-template-columns:minmax(0,600px)}}
+

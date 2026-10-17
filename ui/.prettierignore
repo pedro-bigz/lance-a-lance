@@ -1,0 +1,9 @@
+dist/
+node_modules/
+public/
+pnpm-lock.yaml
+src/book/data.generated.json
+# o CSS fica exatamente como na página original (veja src/styles/index.css)
+src/styles/
+# a marcação é a da página original, sem reformatar
+index.html
