@@ -29,10 +29,30 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-          cache-dependency-path: desktop/pnpm-lock.yaml
+          cache-dependency-path: |
+            desktop/pnpm-lock.yaml
+            ui/pnpm-lock.yaml
+      # Interface (ui/): o app empacota ui/dist/lance-a-lance.html, gerado aqui pelo build da ui.
+      - name: Instala a interface
+        working-directory: ui
+        run: pnpm install --frozen-lockfile
+      # um comando por passo: no Windows (pwsh) só a falha do último comando de um bloco interromperia o passo
+      - name: Tipos da interface
+        working-directory: ui
+        run: pnpm typecheck
+      - name: Lint da interface
+        working-directory: ui
+        run: pnpm lint
+      - name: Testes da interface
+        working-directory: ui
+        run: pnpm test --maxWorkers=2
+      - name: Build da interface
+        working-directory: ui
+        run: pnpm build
       - run: pnpm install --frozen-lockfile
       - name: Garante o binário do Electron
         run: node node_modules/electron/install.js
+      # prepare.mjs roda o build da ui de novo (rápido) antes de montar desktop/app/
       - run: pnpm dist
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'

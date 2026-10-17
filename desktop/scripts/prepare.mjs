@@ -1,24 +1,43 @@
-// Monta desktop/app/ a partir da página única ../lance-a-lance.html (a mesma publicada como artifact):
-// troca as fontes e o chess.js da CDN pelas cópias em vendor/, para o app funcionar offline.
-import { readFileSync, writeFileSync, mkdirSync, rmSync, cpSync } from 'node:fs';
+// Monta desktop/app/ a partir do build da interface (../ui/dist/lance-a-lance.html, a mesma página publicada como
+// artifact): troca as fontes do Google pelas cópias em vendor/, para o app funcionar offline, e copia o Stockfish e
+// as peças que o build deixa ao lado da página. O chess.js já vai dentro do bundle da interface.
+// Antes, roda o build da ui (vite build + scripts/finalize.mjs, o mesmo "pnpm build" de ui/) com as dependências
+// instaladas em ui/node_modules. Com --skip-ui-build usa o ui/dist que já existe.
+import { readFileSync, writeFileSync, mkdirSync, rmSync, cpSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const src = join(root, '..', 'lance-a-lance.html');
+const uiDir = join(root, '..', 'ui');
+const uiDist = join(uiDir, 'dist');
+const src = join(uiDist, 'lance-a-lance.html');
 const out = join(root, 'app');
+
+if (!process.argv.includes('--skip-ui-build')) {
+  const vite = join(uiDir, 'node_modules', 'vite', 'bin', 'vite.js');
+  if (!existsSync(vite)) {
+    throw new Error('Dependências da interface não instaladas: rode "corepack pnpm@10.13.1 install" em ui/ e tente de novo.');
+  }
+  console.log('build da interface (ui/)…');
+  execFileSync(process.execPath, [vite, 'build', '--logLevel', 'warn'], { cwd: uiDir, stdio: 'inherit' });
+  execFileSync(process.execPath, [join(uiDir, 'scripts', 'finalize.mjs')], { cwd: uiDir, stdio: 'inherit' });
+}
+if (!existsSync(src)) {
+  throw new Error(`Build da interface não encontrado (${src}): rode "corepack pnpm@10.13.1 build" em ui/.`);
+}
 
 let html = readFileSync(src, 'utf8');
 
 const swaps = [
   [/<link rel="preconnect"[^>]*>\s*/g, ''],
   [/<link rel="stylesheet" href="https:\/\/fonts\.googleapis\.com[^"]*">/, '<link rel="stylesheet" href="vendor/fonts.css">'],
-  [/<script src="https:\/\/cdnjs\.cloudflare\.com\/ajax\/libs\/chess\.js\/[^"]*"><\/script>/, '<script src="vendor/chess.min.js"></script>'],
 ];
 for (const [re, to] of swaps) {
-  if (!re.test(html)) throw new Error(`Trecho esperado não encontrado em lance-a-lance.html: ${re}`);
+  if (!re.test(html)) throw new Error(`Trecho esperado não encontrado em ui/dist/lance-a-lance.html: ${re}`);
   html = html.replace(re, to);
 }
+if (/<script[^>]+src="https?:/i.test(html)) throw new Error('A página ainda carrega script de fora (o app desktop precisa funcionar offline).');
 
 const csp = [
   "default-src 'self'",
@@ -47,7 +66,7 @@ ${html}
 rmSync(out, { recursive: true, force: true });
 mkdirSync(out, { recursive: true });
 writeFileSync(join(out, 'index.html'), page);
-cpSync(join(root, '..', 'stockfish.asm.js'), join(out, 'stockfish.asm.js'));
+cpSync(join(uiDist, 'stockfish.asm.js'), join(out, 'stockfish.asm.js'));
 cpSync(join(root, 'vendor'), join(out, 'vendor'), { recursive: true });
-cpSync(join(root, '..', 'pieces'), join(out, 'pieces'), { recursive: true });
+cpSync(join(uiDist, 'pieces'), join(out, 'pieces'), { recursive: true });
 console.log('app/ pronto');
