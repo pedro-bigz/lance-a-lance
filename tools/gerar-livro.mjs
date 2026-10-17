@@ -1,18 +1,21 @@
-// Gera o livro de aberturas embutido no lance-a-lance.html.
+// Gera o livro de aberturas da interface: ui/src/book/data.generated.json (vai embutido no build da ui).
 // Fontes: tools/livro/{a..e}.tsv (lichess-org/chess-openings, domínio público CC0) e
 // tools/livro/curadas.txt (linhas com nomes em português, "Família|Variante|lances"; têm prioridade no nome).
 // Cada posição do livro vira um hash de 53 bits (base 36) ligado ao índice do nome da abertura (ou -1 sem nome).
-// Uso: node tools/gerar-livro.mjs
-import { readFileSync, writeFileSync } from 'node:fs';
+// Uso: node tools/gerar-livro.mjs (antes, instale as dependências da ui: cd ui && corepack pnpm@10.13.1 install)
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(import.meta.url);
-const { Chess } = require(join(root, 'desktop', 'vendor', 'chess.min.js'));
+// o mesmo chess.js (0.10.3) que vai no bundle da interface
+const chessPath = join(root, 'ui', 'node_modules', 'chess.js', 'chess.js');
+if (!existsSync(chessPath)) throw new Error('chess.js não encontrado: rode "corepack pnpm@10.13.1 install" em ui/ antes de gerar o livro');
+const { Chess } = require(chessPath);
 
-// mesmo hash usado na página (cyrb53)
+// mesmo hash usado na interface (cyrb53, em ui/src/book/hash.ts)
 export function cyrb53(str, seed = 0){
   let h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed;
   for (let i = 0; i < str.length; i++) { const ch = str.charCodeAt(i); h1 = Math.imul(h1 ^ ch, 2654435761); h2 = Math.imul(h2 ^ ch, 1597334677); }
@@ -113,12 +116,8 @@ for (const [h, label] of named) book.set(h, idxOf(label));
 const entries = [...book].map(([h, i]) => `${h.toString(36)}${i >= 0 ? ':' + i.toString(36) : ''}`).join(',');
 // linhas: "índiceDoNome|lances", com os lances já normalizados pelo chess.js (SAN com + e #)
 const lineStr = lines.map(([n, sans]) => { const c = new Chess(); const out = []; for (const san of sans) { const m = c.move(san, {sloppy: true}); if (!m) break; out.push(m.san); } return `${idxOf(n).toString(36)}|${out.join(' ')}`; }).join('\n');
-const data = `const BOOK_DATA = ${JSON.stringify({names, pos: entries, lines: lineStr})};`;
+const data = JSON.stringify({names, pos: entries, lines: lineStr});
 
-const htmlPath = join(root, 'lance-a-lance.html');
-const html = readFileSync(htmlPath, 'utf8');
-const start = '/* LIVRO:INICIO (gerado por tools/gerar-livro.mjs) */', end = '/* LIVRO:FIM */';
-const a = html.indexOf(start), b = html.indexOf(end);
-if (a < 0 || b < 0) throw new Error('marcadores do livro não encontrados no HTML');
-writeFileSync(htmlPath, html.slice(0, a + start.length) + '\n' + data + '\n' + html.slice(b));
+const outPath = join(root, 'ui', 'src', 'book', 'data.generated.json');
+writeFileSync(outPath, data + '\n');
 console.log(`livro: ${book.size} posições, ${names.length} nomes, ${count} linhas do Lichess + ${curated.length} curadas; ${(data.length / 1024).toFixed(0)} KB`);
