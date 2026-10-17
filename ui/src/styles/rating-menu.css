@@ -1,0 +1,29 @@
+/* Rating do jogador */
+.rating-pill{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:5px 12px;background:var(--surface);font-variant-numeric:tabular-nums}
+.rating-pill b{font-family:var(--f-mono);color:var(--ink);font-size:14px}
+.rec-note{margin:8px 0 0;font-size:13px;color:var(--muted);line-height:1.45}
+.rec-note b{color:var(--ink)}
+.rec-note .warn{color:var(--c-erro);font-weight:600}
+.bot .rec{font-style:normal;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);margin-top:2px}
+.bot.recommended{border-color:var(--accent);border-style:dashed}
+.delta-up{color:var(--c-melhor);font-weight:700}
+.delta-down{color:var(--c-capivarada);font-weight:700}
+/* Menu de três pontos no topo */
+.menu-btn svg{display:block}
+.pop.menu-pop{right:0;width:min(320px,calc(100vw - 32px));display:flex;flex-direction:column;gap:12px;padding:14px}
+.menu-field{display:flex;flex-direction:column;gap:6px}
+.menu-field .lab{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.menu-field select{width:100%}
+.menu-field select:disabled{opacity:.5;cursor:default}
+.menu-switch{padding:2px 0}
+.menu-sep{border:0;border-top:1px solid var(--line);margin:0}
+.menu-item{border:0;background:none;text-align:left;font-weight:600;font-size:14px;padding:9px 10px;border-radius:8px;margin:-4px -6px}
+.menu-item:hover{background:var(--surface-2)}
+a.menu-item{display:block;color:inherit;text-decoration:none}
+.mode-field{display:flex;align-items:center;gap:8px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.mode-field select{text-transform:none;letter-spacing:0;color:var(--ink);padding-right:8px}
+.mode-field select:disabled{opacity:.5;cursor:default}
+.mode-pill{font-size:12px;font-weight:600;color:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:2px 10px}
+body:not(.blind) .blind-only{display:none!important}
+body.blind .assist{display:none!important}
+body.blind .player,body.blind .navbar{padding-left:0}

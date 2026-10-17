@@ -1,0 +1,18 @@
+/* Estilos da interface, na ordem original da página (a ordem importa para a cascata).
+   Os arquivos são o CSS de lance-a-lance.html dividido por seção, sem mudança de conteúdo. */
+@import './tokens.css';
+@import './base.css';
+@import './board.css';
+@import './panel.css';
+@import './tutor.css';
+@import './study.css';
+@import './effects.css';
+@import './rating-menu.css';
+@import './board-styles.css';
+@import './controls.css';
+@import './history.css';
+@import './auth.css';
+@import './views.css';
+@import './home.css';
+@import './histpage-admin.css';
+@import './stats.css';

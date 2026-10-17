@@ -1,0 +1,43 @@
+/* Estilos de tabuleiro (Floresta usa os tokens do tema) */
+[data-board="madeira"]{--sq-light:#f0d9b5;--sq-dark:#b58863}
+[data-board="torneio"]{--sq-light:#eeeed2;--sq-dark:#769656}
+[data-board="oceano"]{--sq-light:#dee3e6;--sq-dark:#8ca2ad}
+[data-board="marmore"]{--sq-light:#f1efea;--sq-dark:#a8a49c}
+[data-board="ametista"]{--sq-light:#ece4f3;--sq-dark:#9a83b8}
+[data-board="coral"]{--sq-light:#f8e6d9;--sq-dark:#cf8a6b}
+/* Estilos de peças (Clássicas usa as regras base de .pc) */
+[data-pieces="diagrama"] .pc.w,.pc.w[data-pieces="diagrama"],[data-pieces="diagrama"] .pc.b,.pc.b[data-pieces="diagrama"]{color:#16181a;text-shadow:0 0 .3cqw rgba(255,255,255,.55)}
+[data-pieces="madeira"] .pc.w,.pc.w[data-pieces="madeira"]{color:#f2dcb3;text-shadow:0 0 .25cqw #4a2e14,0 0 .25cqw #4a2e14,0 0 .25cqw #4a2e14,0 .35cqw .4cqw rgba(0,0,0,.35)}
+[data-pieces="madeira"] .pc.b,.pc.b[data-pieces="madeira"]{color:#5a3418;text-shadow:0 0 .25cqw rgba(255,236,200,.55),0 .35cqw .4cqw rgba(0,0,0,.3)}
+[data-pieces="rubi"] .pc.w,.pc.w[data-pieces="rubi"]{color:#e04a4a;text-shadow:0 0 .25cqw #3a0c0c,0 0 .25cqw #3a0c0c,0 0 .25cqw #3a0c0c,0 .35cqw .4cqw rgba(0,0,0,.35)}
+[data-pieces="rubi"] .pc.b,.pc.b[data-pieces="rubi"]{color:#2f63b3;text-shadow:0 0 .25cqw #0b1d3a,0 0 .25cqw #0b1d3a,0 0 .25cqw #0b1d3a,0 .35cqw .4cqw rgba(0,0,0,.35)}
+[data-pieces="letras"] .pc,.pc[data-pieces="letras"]{font-family:var(--f-display);font-weight:800;font-size:5.4cqw;width:1.7em;height:1.7em;border-radius:50%;display:grid;place-items:center;transform:none;text-shadow:none;box-shadow:0 .3cqw .6cqw rgba(0,0,0,.3)}
+[data-pieces="letras"] .pc.w,.pc.w[data-pieces="letras"]{background:#fbfbf8;color:#18201b;border:.45cqw solid #18201b;text-shadow:none}
+[data-pieces="letras"] .pc.b,.pc.b[data-pieces="letras"]{background:#1c1e1d;color:#fbfbf8;border:.45cqw solid #fbfbf8;text-shadow:none}
+[data-pieces="letras"] .promo .pc{font-size:5.4cqw}
+/* Conjuntos ilustrados: a peça é uma imagem quadrada do tamanho da casa */
+.pc.img{width:12.5cqw;height:12.5cqw;transform:none;text-shadow:none;display:block}
+.pc.img img{display:block;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 .25cqw .35cqw rgba(0,0,0,.35));-webkit-user-drag:none;user-select:none;pointer-events:none}
+.ghost.img{transform:translate(-50%,-55%)}
+.ghost.img img{filter:drop-shadow(0 6px 8px rgba(0,0,0,.4))}
+.promo .pc.img{width:11cqw;height:11cqw}
+.style-opt .pv .pc.img{width:34px;height:42px}
+.style-opt .pv .pc.img img{filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
+
+/* Rodapé com o seletor de estilo (dropdown que abre para cima) */
+.bottom{max-width:1080px;margin:28px auto 0;padding-top:16px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.bottom .note{margin:0}
+.pop.pop-up{top:auto;bottom:calc(100% + 10px);left:0;right:auto}
+.pop-anchor.up:has(>.pop:not([hidden]))::after{top:auto;bottom:calc(100% + 4px);transform:rotate(225deg)}
+.style-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px}
+.pop.pop-up{max-height:calc(100dvh - 90px)}
+.style-opt{border:1px solid var(--line);background:var(--surface-2);border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;text-align:left}
+.style-opt[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:var(--surface)}
+.sw{display:grid;grid-template-columns:repeat(4,1fr);aspect-ratio:2;border-radius:6px;overflow:hidden}
+.sw i{background:var(--sq-dark)}
+.sw i:nth-child(1),.sw i:nth-child(3),.sw i:nth-child(6),.sw i:nth-child(8){background:var(--sq-light)}
+.pv{display:flex;justify-content:center;align-items:center;gap:2px;height:46px;border-radius:6px;background:linear-gradient(90deg,var(--sq-light) 50%,var(--sq-dark) 50%)}
+.style-opt .pv .pc{font-size:30px}
+.style-opt .pv .pc.img{transform:none}
+.style-opt[data-pieces="letras"] .pv .pc{font-size:13px}
+

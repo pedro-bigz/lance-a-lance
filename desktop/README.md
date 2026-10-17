@@ -6,8 +6,12 @@ Funciona offline: motor, biblioteca de xadrez e fontes vão dentro do app.
 
 ## Como está montado
 
-- `../lance-a-lance.html` é a fonte única da interface (a mesma página publicada como artifact).
-- `scripts/prepare.mjs` gera `app/` a partir dela, trocando as fontes e o chess.js da CDN pelas cópias em `vendor/`.
+- A interface fica em `../ui` (Vite + TypeScript; veja `../ui/README.md`). O build dela, `../ui/dist/lance-a-lance.html`,
+  é a mesma página publicada como artifact, com o JS (inclusive o chess.js) e o CSS embutidos.
+- `scripts/prepare.mjs` roda o build da ui (com as dependências de `../ui/node_modules`; instale-as antes com
+  `corepack pnpm@10.13.1 install` em `ui/`) e gera `app/` a partir dele: troca as fontes do Google pelas cópias em
+  `vendor/` e copia `stockfish.asm.js` e `pieces/` de `../ui/dist`. Com `--skip-ui-build` usa o `ui/dist` que já existe.
+  Sem as dependências da ui ou sem o build, para com uma mensagem dizendo o que rodar.
 - `main.js` abre a janela e serve `app/` pelo protocolo `app://`, para o Stockfish rodar num Web Worker.
 - `electron-builder.yml` define os instaladores; `build/icon.png` é o ícone (`pnpm icons` gera de novo).
 - `.env` tem só o endereço da API (`LANCE_API_URL`). O app pede login (e-mail e senha) antes de abrir o
@@ -21,7 +25,7 @@ Funciona offline: motor, biblioteca de xadrez e fontes vão dentro do app.
   confere `/v1/auth/me` e só encerra a sessão se a própria conta foi desativada ou bloqueada.
 - `.games` (`create`, `update`, `list`, `get`, `remove`) e `.stats` (`me`, `ratingHistory`) são os IPC `games:*` e `stats:*`:
   mesma checagem de origem, ids de usuário e de partida só UUID (texto canônico; número é recusado), corpo da partida com campos conhecidos e até 250 KB (a API valida o resto).
-  A página usa essas pontes pelo `GameStore` (comentário "GameStore" em `lance-a-lance.html`): toda partida é salva
+  A página usa essas pontes pelo `GameStore` (`ui/src/store/game-store.ts`): toda partida é salva
   sozinha na conta do usuário, com debounce de ~1 s; se a API cair, a fila fica no localStorage do app (por usuário) e é
   reenviada com espera crescente, inclusive ao reabrir. A pontuação exibida vem de `player_stats` e a variação (+10/−10) da
   resposta da API quando a partida termina. Partidas e pontuação guardadas localmente por versões anteriores do app são
@@ -53,13 +57,14 @@ Painel de administração, Tema, Sair). Recolhida mostra só os ícones; o estad
 (`lance-a-lance:sidebar:v1`). Em janelas de até 900 px ela vira gaveta, aberta pelo botão de menu do topo e fechada ao
 navegar, com Esc ou clicando fora.
 
-Para criar uma tela nova (contrato descrito também no comentário "Telas do app desktop" em `lance-a-lance.html`):
+Para criar uma tela nova (contrato descrito também no comentário de `ui/src/desktop/views.ts`):
 
-1. HTML: `<section class="view" data-view="NOME" hidden>` dentro de `#appRoot`, ao lado das outras views;
+1. HTML: `<section class="view" data-view="NOME" hidden>` dentro de `#appRoot` em `ui/index.html`, ao lado das outras views;
    modais dela ficam fora das views, junto dos outros `.modal`.
-2. JS: `VIEWS.NOME = {title: 'Título', roles: ['administrador', 'jogador'], nav: true, icon: 'chave', onShow() {}, onHide() {}}`.
+2. TS (`ui/src/desktop/views.ts`): `VIEWS.NOME = {title: 'Título', roles: ['administrador', 'jogador'], nav: true, icon: 'chave', onShow() {}, onHide() {}}`.
    `nav: true` põe a tela na sidebar, na ordem das chaves de `VIEWS`, com o ícone `NAV_ICONS[icon]` (SVG de traço 24×24;
    crie a chave se precisar) e o texto de `title`; só aparece para quem tem o papel. `onShow`/`onHide` são opcionais.
+   Os listeners da tela vão numa função `init…()` chamada em `ui/src/main.ts`, na ordem em que estão lá.
    Para mudar a tela inicial, troque `DEFAULT_VIEW`.
 3. Navegue com um link para `#/NOME`, `showView('NOME')` ou `goView('NOME')` (troca na hora). Quem não tem o papel
    volta para a view padrão com um aviso.
@@ -73,6 +78,7 @@ login, sidebar nem roteamento: aparece direto o jogo, com o botão do histórico
 ## Rodar
 
 ```bash
+(cd ../ui && corepack pnpm@10.13.1 install)   # dependências da interface (o prepare faz o build dela)
 corepack pnpm@10.13.1 install
 corepack pnpm@10.13.1 start
 ```

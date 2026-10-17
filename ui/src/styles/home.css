@@ -1,0 +1,41 @@
+/* Início (view inicio): saudação, pontuação, partida em andamento, resumo e últimas partidas */
+.home{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.home-hero{position:relative;overflow:hidden;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:18px 28px;padding:26px 28px;border-color:color-mix(in srgb,var(--accent) 35%,var(--line));background:radial-gradient(120% 160% at 100% 0%,var(--accent-soft),transparent 62%),var(--surface)}
+.home-hero::after{content:"\265E";position:absolute;right:150px;bottom:-62px;font-family:var(--f-piece);font-size:210px;line-height:1;color:var(--accent);opacity:.06;pointer-events:none}
+.home-hero>*{position:relative;z-index:1}
+.home-hero .eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);font-weight:700}
+.home-hero h2{font-family:var(--f-display);font-weight:800;font-size:32px;line-height:1.1;letter-spacing:-.02em;margin:4px 0 0;text-wrap:balance}
+.home-hero p{margin:6px 0 0;color:var(--muted);max-width:52ch}
+.home-cta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.home-cta a.btn{text-decoration:none;color:var(--ink)}
+.home-rating{display:flex;flex-direction:column;align-items:flex-end;gap:2px;text-align:right}
+.home-rating .lab{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.home-rating b{font-family:var(--f-display);font-weight:800;font-size:56px;line-height:1;letter-spacing:-.03em;color:var(--accent);font-variant-numeric:tabular-nums}
+.home-rating small{color:var(--muted);font-size:12.5px}
+.home-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:14px;align-items:stretch}
+@media (max-width:820px){.home-grid{grid-template-columns:minmax(0,1fr)}.home-hero::after{right:-20px}}
+.home-card-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:12px}
+.home-card-h a{font-size:13px;font-weight:700;color:var(--accent);text-decoration:none;white-space:nowrap}
+.home-card-h a:hover{text-decoration:underline;text-underline-offset:3px}
+.home-continue{display:flex;flex-direction:column}
+.home-continue-body{display:grid;grid-template-columns:132px minmax(0,1fr);gap:16px;align-items:center;flex:1}
+.home-continue-body h3{font-family:var(--f-display);font-weight:800;font-size:20px;letter-spacing:-.01em;margin:6px 0 2px}
+.home-continue-body small{color:var(--muted);font-size:13px;display:block}
+.home-continue-body .row{margin-top:12px}
+.home-continue.empty .home-continue-body{grid-template-columns:minmax(0,1fr)}
+.live-tag{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--c-otima);border:1px solid var(--c-otima);border-radius:999px;padding:2px 10px}
+.live-tag::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;animation:blink 1.4s ease-in-out infinite}
+.mini-board{width:132px;aspect-ratio:1;container-type:inline-size;display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);border-radius:6px;overflow:hidden;box-shadow:0 1px 0 var(--line),0 10px 24px -16px rgba(0,0,0,.5);user-select:none}
+.mini-board i{display:grid;place-items:center;font-style:normal;min-width:0;min-height:0}
+.mini-board i.l{background:var(--sq-light)} .mini-board i.d{background:var(--sq-dark)}
+.mini-board .pc{font-size:10.6cqw}
+.mini-board .pc.img{width:12cqw;height:12cqw}
+.mini-board.skel{background:var(--surface-2)}
+.wdl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.wdl div{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:10px;background:var(--surface-2);border-top:3px solid var(--st)}
+.wdl span{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+.wdl b{font-family:var(--f-display);font-weight:800;font-size:26px;line-height:1.1;font-variant-numeric:tabular-nums}
+.wdl-bar{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--surface-2);margin:12px 0 6px}
+.wdl-bar i{display:block;height:100%;background:var(--st)}
+.home-sum-note{color:var(--muted);font-size:12.5px;margin:0}
+.home-recent .hist-list,.histpage .hist-list{overflow:visible;min-height:0}

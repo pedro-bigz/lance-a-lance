@@ -1,0 +1,25 @@
+/* Tutor de aberturas (chat com IA) */
+.tutor-btn svg{flex:none}
+.tutor{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom, 0px));z-index:55;width:min(400px,calc(100vw - 32px));height:min(640px,calc(100dvh - 32px));display:flex;flex-direction:column;gap:10px;padding:14px;box-shadow:0 24px 60px -20px rgba(0,0,0,.55)}
+.tutor-h{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.tutor-h small{color:var(--muted);font-size:12px}
+.tutor-hb{display:flex;gap:6px}
+.tutor-key-btn{min-height:32px;padding:4px 10px;font-size:12.5px}
+.tutor-key{display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--surface-2)}
+.tutor-key label{font-weight:700;font-size:13px}
+.tutor-key .note{margin:0}
+.tutor-key .row{margin:0;flex-wrap:nowrap}
+.tutor-key code{font-family:var(--f-mono);font-size:12px;background:var(--surface);padding:0 4px;border-radius:4px}
+.tutor-key input{flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:8px 10px;font-family:var(--f-mono);font-size:13px;color:var(--ink)}
+.tutor-log{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-right:2px}
+.tmsg{max-width:92%;padding:9px 12px;border-radius:12px;font-size:14px;line-height:1.45;overflow-wrap:anywhere}
+.tmsg.user{align-self:flex-end;background:var(--accent);color:var(--accent-ink);border-bottom-right-radius:4px}
+.tmsg.assistant{align-self:flex-start;background:var(--surface-2);border-bottom-left-radius:4px}
+.tmsg.assistant.pending{color:var(--muted);font-style:italic}
+.tmsg.note{align-self:center;max-width:100%;font-size:12.5px;color:var(--muted);background:none;border:1px dashed var(--line);text-align:center}
+.tutor-chips{display:flex;flex-wrap:wrap;gap:6px}
+.tutor-chips button{border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:5px 10px;font-size:12.5px;font-weight:600}
+.tutor-chips button:hover{border-color:var(--accent)}
+.tutor-status{margin:0;min-height:1em;font-size:12px;color:var(--accent)}
+.tutor-form{display:flex;gap:8px;align-items:flex-end}
+.tutor-form textarea{flex:1;min-height:44px;max-height:120px;resize:vertical;font-family:var(--f-body);font-size:14px}

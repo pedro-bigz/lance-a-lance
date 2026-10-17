@@ -1,0 +1,56 @@
+/* Telas do app desktop (views por hash: #/jogo, #/admin…) e painel de administração */
+.view[hidden],.sidebar[hidden],.side-scrim[hidden],.admin-flags[hidden]{display:none!important}
+html[data-view]:not([data-view="jogo"]) .game-only,html[data-view]:not([data-view="jogo"]) #tutor{display:none!important}
+/* Sidebar (só no app desktop: html.has-sidebar). Fixa à esquerda; recolhida (html.sb-collapsed) mostra só os ícones;
+   em janela estreita vira gaveta (html.sb-open), aberta pelo botão de menu do topo */
+:root{--sb-w:236px}
+html.has-sidebar #appRoot{margin-left:var(--sb-w);transition:margin-left .2s ease}
+.sidebar{position:fixed;z-index:30;top:0;bottom:0;left:0;width:var(--sb-w);display:flex;flex-direction:column;gap:4px;padding:14px 12px 12px;background:var(--surface);border-right:1px solid var(--line);transition:width .2s ease,transform .22s ease}
+.side-brand{display:flex;align-items:center;gap:10px;padding:4px 6px 12px;min-height:46px;text-decoration:none;color:var(--ink);border-radius:10px}
+.side-brand .logo{font-family:var(--f-piece);font-size:28px;line-height:1;color:var(--accent);width:28px;text-align:center;flex:none}
+.side-brand b{font-family:var(--f-display);font-weight:800;font-size:19px;letter-spacing:-.02em;white-space:nowrap;overflow:hidden}
+.side-ico{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.side-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.side-new{justify-content:flex-start;gap:12px;min-height:42px;padding:8px 12px;margin:0 0 10px;white-space:nowrap;overflow:hidden;box-shadow:0 6px 16px -10px var(--accent)}
+.side-new:hover{filter:brightness(1.06)}
+.side-nav{display:flex;flex-direction:column;gap:2px;overflow-y:auto;flex:1;min-height:0;margin:0 -6px;padding:2px 6px}
+.side-item{position:relative;display:flex;align-items:center;gap:12px;min-height:40px;padding:8px 12px;border-radius:9px;color:var(--muted);text-decoration:none;font-weight:600;font-size:14.5px;white-space:nowrap;border:0;background:none;width:100%;text-align:left}
+.side-item:hover{background:var(--surface-2);color:var(--ink)}
+.side-item[aria-current="page"]{background:var(--accent-soft);color:var(--accent)}
+.side-item[aria-current="page"]::before{content:"";position:absolute;left:-6px;top:9px;bottom:9px;width:3px;border-radius:0 3px 3px 0;background:var(--accent)}
+.side-foot{display:flex;flex-direction:column;gap:4px;border-top:1px solid var(--line);padding-top:10px}
+.side-foot .pop-anchor{display:flex}
+.side-foot .pop-anchor::after{display:none!important}
+.side-foot .user-pop{top:auto;bottom:calc(100% + 8px);left:0;right:auto}
+.side-user{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;padding:6px;border-radius:10px;text-align:left;min-width:0;color:var(--ink)}
+.side-user:hover,.side-user[aria-expanded="true"]{background:var(--surface-2)}
+.side-user .user-btn{cursor:inherit}
+.side-user .user-btn:hover{box-shadow:none}
+.side-user-txt{display:flex;flex-direction:column;min-width:0}
+.side-user-txt b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.side-user-txt small{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.side-collapse .side-ico{transition:transform .2s ease}
+.side-scrim{position:fixed;inset:0;z-index:29;background:var(--scrim)}
+.side-open-btn{display:none!important}
+html.has-sidebar .top{align-items:center}
+html.has-sidebar .top>.brand,html.has-sidebar .top>p{display:none}
+@media (min-width:901px){
+  html.sb-collapsed{--sb-w:72px}
+  html.sb-collapsed .sidebar{padding-inline:10px}
+  html.sb-collapsed .side-label,html.sb-collapsed .side-brand b,html.sb-collapsed .side-user-txt{display:none}
+  html.sb-collapsed .side-item,html.sb-collapsed .side-new,html.sb-collapsed .side-brand{justify-content:center;padding-inline:0;gap:0}
+  html.sb-collapsed .side-user{justify-content:center}
+  html.sb-collapsed .side-collapse .side-ico{transform:rotate(180deg)}
+  html.has-sidebar[data-view]:not([data-view="jogo"]) .top{display:none}
+  .side-scrim{display:none!important}
+}
+@media (max-width:900px){
+  html.has-sidebar{--sb-w:min(280px,calc(100vw - 48px))}
+  html.has-sidebar #appRoot{margin-left:0}
+  .sidebar{transform:translateX(-102%)}
+  html.sb-open .sidebar{transform:none;box-shadow:0 24px 60px -20px rgba(0,0,0,.55)}
+  html.has-sidebar .side-open-btn{display:inline-flex!important}
+  html.has-sidebar .top>.brand{display:flex}
+  html.has-sidebar .top>.brand h1{font-size:22px}
+  .side-collapse{display:none!important}
+}

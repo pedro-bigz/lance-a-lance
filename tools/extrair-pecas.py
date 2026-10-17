@@ -1,5 +1,5 @@
 # Recorta as peças das imagens geradas no Gemini (tools/gemini/<conjunto>.jpeg, fundo verde chroma)
-# e grava pieces/<conjunto>/<cor><peça>.webp. Brancas vêm da fileira de cima e pretas da de baixo.
+# e grava ui/public/pieces/<conjunto>/<cor><peça>.webp. Brancas vêm da fileira de cima e pretas da de baixo.
 # Uso: python3 tools/extrair-pecas.py [pasta-para-folha-de-contato]
 import sys
 from pathlib import Path
@@ -9,7 +9,7 @@ from PIL import Image, ImageFilter
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / 'tools' / 'gemini'
-OUT = ROOT / 'pieces'
+OUT = ROOT / 'ui' / 'public' / 'pieces'
 SIZE = 256          # lado do sprite quadrado
 TYPES = ['k', 'q', 'r', 'b', 'n', 'p']
 # altura mínima de cada peça em relação à casa: num tabuleiro digital as peças menores precisam

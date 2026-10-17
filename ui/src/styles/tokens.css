@@ -1,0 +1,32 @@
+/* Layout: tabuleiro com barra de avaliação à esquerda, painel do treinador à direita; empilha no celular */
+:root{
+  /* Interface: neutros quase sem matiz com um verde de destaque; o tabuleiro e as classificações têm cores próprias */
+  --bg:#f4f6f5; --surface:#ffffff; --surface-2:#eef1ef; --ink:#0f1311; --muted:#566059; --line:#dbe0dd;
+  --accent:#00773f; --accent-ink:#ffffff; --accent-soft:rgba(0,119,63,.12);
+  --danger:#c62f2b; --danger-soft:rgba(198,47,43,.1); --success:#0f7a4b; --success-soft:rgba(15,122,75,.1);
+  --warning:#8f5b00; --info:#5550d8; --scrim:rgba(8,10,9,.55);
+  --sq-light:#ebe5d1; --sq-dark:#86a18b; --sq-last:rgba(232,196,64,.5); --sq-sel:rgba(44,106,84,.5); --dot:rgba(24,32,27,.28);
+  --eval-w:#f3f3ef; --eval-b:#262b28;
+  --c-brilhante:#17a59d; --c-otima:#4c84b2; --c-melhor:#69a536; --c-excelente:#83ad45; --c-boa:#8ea583;
+  --c-imprecisao:#deae36; --c-erro:#e0862a; --c-chance:#e2644d; --c-capivarada:#c4322c; --c-livro:#a6825a;
+  --f-display:"Bricolage Grotesque","Avenir Next",system-ui,sans-serif;
+  --f-body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  --f-piece:"Noto Sans Symbols 2","Segoe UI Symbol","DejaVu Sans","Apple Symbols",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141716; --surface:#1b1f1d; --surface-2:#242927; --ink:#f2f5f3; --muted:#a3aca7; --line:#2e3431;
+  --accent:#1fc48d; --accent-ink:#03140d; --accent-soft:rgba(31,196,141,.14);
+  --danger:#f47272; --danger-soft:rgba(244,114,114,.12); --success:#43cf91; --success-soft:rgba(67,207,145,.12);
+  --warning:#f5b93d; --info:#9692ff; --scrim:rgba(0,0,0,.6);
+  --sq-light:#cdc6b0; --sq-dark:#62806a; --sq-last:rgba(232,196,64,.45); --sq-sel:rgba(93,178,145,.55); --dot:rgba(10,14,12,.35);
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#141716; --surface:#1b1f1d; --surface-2:#242927; --ink:#f2f5f3; --muted:#a3aca7; --line:#2e3431;
+  --accent:#1fc48d; --accent-ink:#03140d; --accent-soft:rgba(31,196,141,.14);
+  --danger:#f47272; --danger-soft:rgba(244,114,114,.12); --success:#43cf91; --success-soft:rgba(67,207,145,.12);
+  --warning:#f5b93d; --info:#9692ff; --scrim:rgba(0,0,0,.6);
+  --sq-light:#cdc6b0; --sq-dark:#62806a; --sq-last:rgba(232,196,64,.45); --sq-sel:rgba(93,178,145,.55); --dot:rgba(10,14,12,.35);
+  color-scheme:dark;
+}
