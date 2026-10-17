@@ -1,14 +1,14 @@
-/* ---------- Estatísticas (view estatisticas): ilha React ----------
+/* ---------- Estatísticas (view estatisticas): componente ----------
    Recarrega ao abrir a tela e quando uma partida que vale pontuação termina (tópico 'tela:estatisticas'). O gráfico é
    um componente que gera o mesmo SVG da versão anterior (geometria em stats.ts). */
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { CLS } from '../core/constants';
+import { ClsBadge } from '../board/badge';
 import type { PlayerStats } from '../types/api';
 import { fmtDelta, fmtNum } from '../ui/format';
 import { authError } from './account';
 import { DESKTOP_STATS } from './bridge';
-import { useLatest, useViewRefresh } from './react/hooks';
-import { FormMsg, msgOf, type Msg } from './react/modal';
+import { useLatest, useViewRefresh } from '../react/hooks';
+import { FormMsg, msgOf, type Msg } from '../react/modal';
 import {
   STATS_RANGES,
   chartEmptyText,
@@ -27,12 +27,6 @@ import {
 import { currentView } from './views';
 
 type ChartState = { kind: 'error'; text: string } | { kind: 'data'; hist: ChartHist } | null;
-
-// selo da classificação (o mesmo de badgeHtml em board/render.ts); sym é texto fixo de CLS e, no livro, um SVG
-function Badge({ k }: { k: keyof typeof CLS }) {
-  const c = CLS[k];
-  return <span className="mini" style={{ background: `var(--c-${k})` }} title={c.label} dangerouslySetInnerHTML={{ __html: c.sym }} />;
-}
 
 /** gráfico da pontuação: SVG com grade, eixos, área, linha, pontos e a dica do ponto selecionado */
 export function RatingChart({ hist, width, now }: { hist: ChartHist; width: number; now: number }) {
@@ -326,7 +320,7 @@ export function StatsView() {
                     <tr key={row.k}>
                       <td>
                         <span className="cls-name">
-                          <Badge k={row.k} />
+                          <ClsBadge k={row.k} cls="mini" />
                           {row.label} <small>{row.desc}</small>
                         </span>
                       </td>

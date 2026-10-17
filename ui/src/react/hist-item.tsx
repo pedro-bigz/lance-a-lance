@@ -1,16 +1,19 @@
-// Item da lista de partidas (Início e página Histórico): o mesmo HTML de histItemHtml (game/history.ts), a partir de
-// histItemView. data-open e data-del ficam no HTML como antes.
-import { GLYPH } from '../../board/pieces';
-import { histItemView } from '../../game/history';
-import type { GameRecord } from '../../store/types';
+// Item da lista de partidas (Início, página Histórico e modal de histórico do tabuleiro), a partir de histItemView
+// (game/history.ts). data-open e data-del ficam no HTML como antes.
+import { GLYPH } from '../board/pieces';
+import { histItemView } from '../game/history';
+import type { GameRecord } from '../store/types';
 
 export interface HistItemProps {
   rec: GameRecord;
   onOpen: (id: string) => void;
   /** sem onDelete, o item não tem o botão Excluir */
   onDelete?: (rec: GameRecord, btn: HTMLButtonElement) => void;
+  /** estado do Excluir em dois cliques (modal de histórico do tabuleiro): armado, gravando ou falhou */
+  del?: 'armed' | 'busy' | 'retry' | null;
 }
-export function HistItem({ rec, onOpen, onDelete }: HistItemProps) {
+const DEL_LABEL = { armed: 'Confirmar', busy: 'Confirmar', retry: 'Tente de novo' };
+export function HistItem({ rec, onOpen, onDelete, del }: HistItemProps) {
   const v = histItemView(rec);
   return (
     <li className={v.cls}>
@@ -44,8 +47,14 @@ export function HistItem({ rec, onOpen, onDelete }: HistItemProps) {
         </span>
       </button>
       {onDelete ? (
-        <button className="hist-del" data-del={v.id} aria-label={`Excluir ${v.title}`} onClick={(e) => onDelete(rec, e.currentTarget)}>
-          Excluir
+        <button
+          className={del ? 'hist-del armed' : 'hist-del'}
+          data-del={v.id}
+          aria-label={`Excluir ${v.title}`}
+          disabled={del === 'busy'}
+          onClick={(e) => onDelete(rec, e.currentTarget)}
+        >
+          {del ? DEL_LABEL[del] : 'Excluir'}
         </button>
       ) : null}
     </li>

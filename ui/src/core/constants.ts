@@ -1,6 +1,5 @@
 // Constantes do jogo: valores das peças, classificações dos lances, bots e profundidades de análise
 import { Chess, type PieceType, type ShortMove } from 'chess.js';
-import { ICON_BOOK } from '../ui/icons';
 
 export const VAL: Record<PieceType, number> = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
 export const PIECE: Record<PieceType, [string, string]> = {
@@ -15,11 +14,12 @@ export const PIECE: Record<PieceType, [string, string]> = {
 export type ClsKey = 'livro' | 'brilhante' | 'otima' | 'melhor' | 'excelente' | 'boa' | 'imprecisao' | 'erro' | 'chance' | 'capivarada';
 export interface ClsInfo {
   label: string;
+  /** símbolo do selo; no livro o selo é o ícone do livro (ClsBadge em board/badge.tsx) */
   sym: string;
   desc: string;
 }
 export const CLS: Record<ClsKey, ClsInfo> = {
-  livro: { label: 'Livro', sym: ICON_BOOK, desc: 'Teoria de abertura' },
+  livro: { label: 'Livro', sym: '', desc: 'Teoria de abertura' },
   brilhante: { label: 'Brilhante', sym: '!!', desc: 'Sacrifício correto' },
   otima: { label: 'Ótima', sym: '!', desc: 'Único lance bom' },
   melhor: { label: 'Melhor', sym: '★', desc: 'Lance do motor' },

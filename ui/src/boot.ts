@@ -9,16 +9,15 @@ import { maybeBot } from './engine/bot';
 import { botEngine, engine } from './engine/engine';
 import { ACCOUNT } from './desktop/account';
 import { API_GAMES, LD } from './desktop/bridge';
-import { renderBots } from './game/controls';
 import { openHistory, renderHistCount } from './game/history';
 import { loadMocks } from './game/mocks';
-import { renderAll } from './game/panel';
 import { loadServerRating } from './game/rating';
+import { UI } from './game/ui-state';
 import { GameStore, apiGameStore, localGameStore, setGameStore } from './store/game-store';
 import { newId } from './store/local';
 import { migrateLegacyKeys, onGameSaved, restore, resumeFromApi, setStoreKey } from './store/session';
+import { publish } from './store/view-store';
 import { prefs } from './ui/theme';
-import { $ } from './ui/dom';
 
 let appBooted = false;
 export function bootApp(): void {
@@ -36,8 +35,7 @@ export function bootApp(): void {
   setGameStore(API_GAMES && user ? apiGameStore(LD!.games!, user.id) : localGameStore());
   const store = GameStore!;
   store.onSaved(onGameSaved);
-  $('#mockBtns').hidden = store.kind === 'api';
-  renderBots();
+  UI.mockBtns = store.kind !== 'api';
   if (BOARD_STYLES.some((b) => b.id === prefs.board)) STYLE.board = prefs.board as string;
   if (PIECE_STYLES.some((p) => p.id === prefs.pieces)) STYLE.pieces = prefs.pieces as string;
   if (CAPTURE_STYLES.some((c) => c.id === prefs.capture)) STYLE.capture = prefs.capture as string;
@@ -51,7 +49,7 @@ export function bootApp(): void {
     requestAnalysis(S.positions[0] as string);
   }
   if (!S.gameId && S.mode === 'play') S.gameId = newId();
-  renderAll();
+  publish();
   maybeBot();
   if (store.kind === 'api') {
     loadServerRating();

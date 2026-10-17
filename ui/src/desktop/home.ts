@@ -1,6 +1,6 @@
 /* ---------- Início (view inicio): dados ----------
    Saudação, pontuação e bot recomendado, "Continuar partida" (com miniatura da posição), resumo e últimas partidas.
-   Aqui ficam a busca e as regras; o desenho é a ilha React de home-view.tsx. */
+   Aqui ficam a busca e as regras; o desenho é o componente de home-view.tsx. */
 import { Chess, type Color, type PieceType } from 'chess.js';
 import { START_FEN, uciObj } from '../core/constants';
 import { S, botColor } from '../core/state';

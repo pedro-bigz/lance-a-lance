@@ -1,54 +1,60 @@
 /* Lance a Lance: entrada da interface.
-   Os módulos só definem funções e estado; aqui as partes são ligadas na mesma ordem da antiga página única
-   (a ordem importa: vários atalhos de teclado no document conferem e.defaultPrevented de quem registrou antes). */
+   Monta a árvore React (app/app.tsx) e liga os atalhos do document na mesma ordem da antiga página única (a ordem
+   importa: vários atalhos de teclado conferem e.defaultPrevented de quem registrou antes; Esc fecha primeiro o menu ⋮,
+   depois a nova partida, o estudo, o histórico ou o estilo, o menu da conta e por fim a gaveta da sidebar). */
 import './styles/index.css';
+import { flushSync } from 'react-dom';
+import { createRoot } from 'react-dom/client';
+import { App } from './app/app';
 import { S } from './core/state';
-import { initBoardInput } from './board/input';
 import { initStylePicker } from './board/style-picker';
-import { engine } from './engine/engine';
-import { ACCOUNT, enterApp, initAuthForms, initUserMenu, leaveApp, showAuth, authError } from './desktop/account';
+import { engine, setStatus } from './engine/engine';
+import { ACCOUNT, enterApp, initUserMenu, leaveApp, showAuth, authError } from './desktop/account';
 import { DESKTOP_AUTH } from './desktop/bridge';
-import { initProfile } from './desktop/profile';
 import { initSidebarControls } from './desktop/sidebar';
-import { initViews } from './desktop/views';
-import { initGameControls, initNav, initReplayButton } from './game/controls';
-import { initHistoryModal } from './game/history';
+import { initGameControls, initNav } from './game/controls';
 import { initMenus } from './game/menus';
 import { initMocks } from './game/mocks';
-import { renderAll, setStatus } from './game/panel';
-import { initResign } from './game/resign';
+import { replaySync } from './game/replay';
+import { resignSync } from './game/resign';
+import { UI } from './game/ui-state';
 import { AUTH_NOTE } from './store/local';
+import { onBeforeGameRender, publish } from './store/view-store';
+import { blind } from './core/state';
 import { initStudy } from './study/panel';
 import { initTutor } from './tutor/tutor';
 import { initTheme } from './ui/theme';
 import { bootApp } from './boot';
 
+// antes de cada redesenho da tela do jogo: estado derivado que antes o renderAll acertava
+onBeforeGameRender(() => {
+  document.body.classList.toggle('blind', blind());
+  replaySync();
+  resignSync();
+});
+const root = createRoot(document.getElementById('app')!);
+flushSync(() => root.render(<App />));
+
 engine.ready.then(
   () => {
+    UI.engineReady = true;
     setStatus();
   },
   () => {
     S.engineErr = true;
     setStatus();
-    renderAll();
+    publish();
   },
 );
-initBoardInput();
 initNav();
 initMenus();
 initGameControls();
 initTutor();
 initStudy();
-initResign();
-initReplayButton();
-initHistoryModal();
 initMocks();
 initStylePicker();
 initTheme();
-initAuthForms();
 initUserMenu();
-initProfile();
-initViews();
 initSidebarControls();
 
 if (DESKTOP_AUTH) {

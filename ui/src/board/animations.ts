@@ -1,27 +1,29 @@
 /* ---------- Animações de lance ----------
-   Peça deslizando, peça capturada sumindo, xeque, xeque-mate (faixa, coroa e rei caído). */
+   Peça deslizando, peça capturada sumindo, xeque, xeque-mate (faixa, coroa e rei caído). Imperativas (Web Animations
+   API) sobre os elementos que o componente Board desenhou: quem chama já publicou o lance (o DOM está em dia). */
 import type { Color } from 'chess.js';
 import { S, botColor } from '../core/state';
 import type { Ply } from '../core/types';
 import { esc } from '../ui/escape';
 import { rippleFx } from './capture-fx';
+import { REFS } from '../game/ui-state';
 import { STYLE, pieceSpan } from './pieces';
-import { boardEl, sqXY, squaresEl } from './render';
+import { sqXY } from './render';
 
 export const reducedMotion = (): boolean => !!window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 function pieceAt(sq: string): HTMLElement | null {
-  return squaresEl.querySelector<HTMLElement>(`[data-sq="${sq}"] .pc`);
+  return REFS.squares ? REFS.squares.querySelector<HTMLElement>(`[data-sq="${sq}"] .pc`) : null;
 }
 function squareEl(sq: string): HTMLElement | null {
-  return squaresEl.querySelector<HTMLElement>(`[data-sq="${sq}"]`);
+  return REFS.squares ? REFS.squares.querySelector<HTMLElement>(`[data-sq="${sq}"]`) : null;
 }
 // desliza a peça da casa de origem até a de destino (ela já está desenhada no destino)
 export function slidePiece(from: string, to: string, dur: number): Promise<void> {
   const el = pieceAt(to);
-  if (!el) return Promise.resolve();
+  if (!el || !REFS.squares) return Promise.resolve();
   const [fx, fy] = sqXY(from),
     [tx, ty] = sqXY(to);
-  const size = squaresEl.getBoundingClientRect().width / 8;
+  const size = REFS.squares.getBoundingClientRect().width / 8;
   const dx = (fx - tx) * size,
     dy = (fy - ty) * size;
   el.style.zIndex = '6';
@@ -37,6 +39,7 @@ export function slidePiece(from: string, to: string, dur: number): Promise<void>
     .catch(() => {})
     .then(() => {
       el.style.zIndex = '';
+      if (!el.style.cssText) el.removeAttribute('style'); // o nó continua o mesmo depois do lance (React): sem style="" sobrando
     });
 }
 // a peça capturada some aos poucos enquanto a outra chega
@@ -63,7 +66,8 @@ export function fadeCaptured(ply: Ply): void {
   );
 }
 function checkFx(): void {
-  const sqEl = squaresEl.querySelector('.sq.chk');
+  const squaresEl = REFS.squares;
+  const sqEl = squaresEl && squaresEl.querySelector('.sq.chk');
   if (!sqEl) return;
   const king = sqEl.querySelector('.pc');
   if (king)
@@ -106,6 +110,9 @@ function checkFx(): void {
     );
 }
 function mateFx(winner: Color): void {
+  const boardEl = REFS.board,
+    squaresEl = REFS.squares;
+  if (!boardEl || !squaresEl) return;
   const banner = document.createElement('div');
   banner.className = 'board-banner';
   const you = botColor() ? (winner === S.player ? 'Você venceu!' : `${S.bot.name} venceu`) : winner === 'w' ? 'Brancas vencem' : 'Pretas vencem';

@@ -1,97 +1,95 @@
-// Menus do topo do Tabuleiro: "Nova partida" (dropdown ancorado no botão), menu ⋮ e a gaveta do PGN
+// Menus do topo do Tabuleiro: "Nova partida" (dropdown ancorado no botão), menu ⋮ e a gaveta do PGN.
+// O desenho é TopBar (game/top-bar.tsx); aqui ficam o estado aberto/fechado, o foco e os atalhos do document.
 import { S } from '../core/state';
 import { recommendBot } from '../core/rating';
 import { closeStyle } from '../board/style-picker';
 import { setUserPop } from '../desktop/account';
-import { $, target } from '../ui/dom';
-import { renderBots } from './controls';
-import { RATING, renderRecNote } from './rating';
+import { publish } from '../store/view-store';
+import { target } from '../ui/dom';
+import { RATING } from './rating';
+import { REFS, UI, focusId, type Drawer } from './ui-state';
 
-export function setDrawer(id: 'newGame' | 'pgnBox' | null): void {
-  for (const [d, b] of [
-    ['newGame', 'openNew'],
-    ['pgnBox', 'openPgn'],
-  ]) {
-    const open = d === id;
-    $('#' + d).hidden = !open;
-    $('#' + b).setAttribute('aria-expanded', String(open));
-  }
+export function setDrawer(id: Drawer): void {
+  if (UI.drawer === id) return;
+  UI.drawer = id;
+  publish('board');
 }
 // posiciona o dropdown: alinhado à direita do botão, sem sair da tela
-function placePop(): void {
-  const pop = $('#newGame');
-  if (pop.hidden) return;
-  const btn = $('#openNew').getBoundingClientRect(),
+export function placePop(): void {
+  const pop = document.getElementById('newGame'),
+    btnEl = document.getElementById('openNew');
+  if (!pop || !btnEl || pop.hidden) return;
+  const btn = btnEl.getBoundingClientRect(),
     vw = document.documentElement.clientWidth,
     w = pop.offsetWidth;
   const left = Math.max(16, Math.min(btn.right - w, vw - 16 - w));
   pop.style.setProperty('--pop-shift', btn.right - (left + w) + 'px');
 }
 export function closePop(focusBtn: boolean): void {
-  if ($('#newGame').hidden) return;
+  if (UI.drawer !== 'newGame') return;
   setDrawer(null);
-  if (focusBtn) $('#openNew').focus();
+  if (focusBtn) focusId('openNew');
 }
 export function setMenu(open: boolean, focusBtn?: boolean): void {
-  $('#menuPop').hidden = !open;
-  $('#openMenu').setAttribute('aria-expanded', String(open));
-  if (open) $('#menuPop').focus();
-  else if (focusBtn) $('#openMenu').focus();
+  if (UI.menu !== open) {
+    UI.menu = open;
+    publish('board');
+  }
+  if (open) focusId('menuPop');
+  else if (focusBtn) focusId('openMenu');
 }
 // abre a escolha de nível do bot (botão do topo e, no desktop, "Nova partida" da sidebar e do Início)
 export function openNewPop(): void {
   setMenu(false);
   setUserPop(false);
   S.pickBot = recommendBot(RATING.rating);
-  renderBots();
-  renderRecNote();
-  setDrawer('newGame');
+  UI.drawer = 'newGame';
+  publish('board');
   placePop();
-  $('#newGame').focus();
+  focusId('newGame');
+}
+export function toggleMenu(): void {
+  if (UI.menu) {
+    setMenu(false);
+    return;
+  }
+  closePop(false);
+  closeStyle(false);
+  setUserPop(false);
+  setMenu(true);
+}
+export function toggleNewPop(): void {
+  if (UI.drawer === 'newGame') {
+    setMenu(false);
+    setUserPop(false);
+    closePop(false);
+    return;
+  }
+  openNewPop();
+}
+export function togglePgn(): void {
+  setMenu(false);
+  setDrawer(UI.drawer === 'pgnBox' ? null : 'pgnBox');
+  if (UI.drawer === 'pgnBox' && REFS.pgnIn) REFS.pgnIn.focus();
 }
 export function initMenus(): void {
-  $('#openMenu').onclick = () => {
-    if (!$('#menuPop').hidden) {
-      setMenu(false);
-      return;
-    }
-    closePop(false);
-    closeStyle(false);
-    setUserPop(false);
-    setMenu(true);
-  };
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !$('#menuPop').hidden) {
+    if (e.key === 'Escape' && UI.menu) {
       e.preventDefault();
       setMenu(false, true);
     }
   });
   document.addEventListener('pointerdown', (e) => {
-    if (!$('#menuPop').hidden && !target(e).closest('#menuPop, #openMenu')) setMenu(false);
+    if (UI.menu && !target(e).closest('#menuPop, #openMenu')) setMenu(false);
   });
-  $('#openNew').onclick = () => {
-    if (!$('#newGame').hidden) {
-      setMenu(false);
-      setUserPop(false);
-      closePop(false);
-      return;
-    }
-    openNewPop();
-  };
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !$('#newGame').hidden) {
+    if (e.key === 'Escape' && UI.drawer === 'newGame') {
       e.preventDefault();
       closePop(true);
     }
   });
   document.addEventListener('pointerdown', (e) => {
-    if (!$('#newGame').hidden && !target(e).closest('#newGame, #openNew')) closePop(false);
+    if (UI.drawer === 'newGame' && !target(e).closest('#newGame, #openNew')) closePop(false);
   });
   window.addEventListener('resize', placePop);
-  $('#openPgn').onclick = () => {
-    setMenu(false);
-    setDrawer($('#pgnBox').hidden ? 'pgnBox' : null);
-    if (!$('#pgnBox').hidden) $('#pgnIn').focus();
-  };
-  for (const b of document.querySelectorAll<HTMLElement>('[data-close]')) b.onclick = () => setDrawer(null);
 }

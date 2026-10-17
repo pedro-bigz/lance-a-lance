@@ -2,18 +2,19 @@
    No app desktop o tutor usa a API do tutor (pasta api/), que guarda as chaves e escolhe a IA: Gemini primeiro,
    DeepSeek se o Gemini falhar ou ficar sem crédito, OpenRouter por último. O app não tem chave nenhuma.
    No artifact do claude.ai o navegador bloqueia outros servidores, então lá ele usa o Claude da própria conta
-   (capacidade "sample": window.claude.use('sample')). As ferramentas agem no tabuleiro. */
+   (capacidade "sample": window.claude.use('sample')). As ferramentas agem no tabuleiro.
+   O estado da conversa fica em TUTOR (mensagens, ocupado, disponível); o desenho é TutorPanel (tutor/tutor-panel.tsx). */
 import { findLines, openingAt, openingNameOfLines, pgnOf, pickVariety, validLine, type BookLine } from '../book/index';
 import { BOTS, type Bot } from '../core/constants';
 import { S, botColor } from '../core/state';
 import { norm } from '../book/index';
 import { DESKTOP_AI } from '../desktop/bridge';
 import { RATING } from '../game/rating';
+import { REFS, UI } from '../game/ui-state';
 import { setStudy } from '../study/panel';
+import { publish } from '../store/view-store';
 import type { ChatMessage, ChatTool } from '../types/api';
 import type { ClaudeSample, SampleMessage, SampleTool } from '../types/globals';
-import { $, $opt, target } from '../ui/dom';
-import { esc, tutorEsc } from '../ui/escape';
 import { buildDemo, playDemo, startTraining } from './training';
 
 const levelBot = (n: string): Bot | null => BOTS.find((b) => b.id === n) || BOTS.find((b) => norm(b.level) === norm(n)) || null;
@@ -145,13 +146,43 @@ Você controla o tabuleiro pelas ferramentas:
 - estado_do_tabuleiro: lê a partida atual para comentar lances e posições.
 Use as ferramentas quando o pedido envolver o tabuleiro; não invente lances que o livro não tenha. Depois de agir, diga em uma frase o que está acontecendo no tabuleiro e o que o usuário deve observar.`;
 
-/** sample: undefined = ainda não pedido; null = indisponível */
-const TUTOR: { turns: SampleMessage[]; busy: boolean; ctl: AbortController | null; sample: ClaudeSample | null | undefined; greeted?: boolean } = {
+/** Mensagem do log do tutor: note é texto simples; user e assistant aceitam **negrito** e quebras de linha. */
+export interface TutorMsg {
+  id: number;
+  role: 'user' | 'assistant' | 'note';
+  text: string;
+  pending?: boolean;
+  unavail?: boolean;
+}
+export interface TutorState {
+  turns: SampleMessage[];
+  busy: boolean;
+  ctl: AbortController | null;
+  /** sample: undefined = ainda não pedido; null = indisponível */
+  sample: ClaudeSample | null | undefined;
+  greeted?: boolean;
+  log: TutorMsg[];
+  /** muda quando o log deve rolar até o fim (mensagem nova ou texto chegando) */
+  scroll: number;
+  /** desktop: API do tutor no ar e com IA configurada (null = ainda não conferido) */
+  ready: boolean | null;
+  apiMsg: string;
+  sub: string;
+  status: string;
+}
+export const TUTOR: TutorState = {
   turns: [],
   busy: false,
   ctl: null,
   sample: undefined,
+  log: [],
+  scroll: 0,
+  ready: null,
+  apiMsg: '',
+  sub: 'treinos, exemplos e explicações',
+  status: '',
 };
+let msgSeq = 0;
 const AI_NAME = DESKTOP_AI ? 'IA' : 'Claude';
 const DS_TOOLS: ChatTool[] = TUTOR_TOOLS.map((t) => ({
   type: 'function',
@@ -164,7 +195,7 @@ interface TutorError {
   status?: number;
   message?: string;
 }
-async function apiAnswer(turns: SampleMessage[], context: string, bubble: HTMLElement, signal: AbortSignal): Promise<string> {
+async function apiAnswer(turns: SampleMessage[], context: string, bubble: TutorMsg, signal: AbortSignal): Promise<string> {
   const ai = DESKTOP_AI!;
   const messages: ChatMessage[] = [{ role: 'system', content: TUTOR_RULES + context }, ...turns];
   let shown = '';
@@ -178,8 +209,7 @@ async function apiAnswer(turns: SampleMessage[], context: string, bubble: HTMLEl
     messages.push({ role: 'assistant', content: msg.content || '', ...(msg.tool_calls ? { tool_calls: msg.tool_calls } : {}) });
     if (msg.content) {
       shown = (shown ? shown + '\n\n' : '') + msg.content;
-      bubble.classList.remove('pending');
-      bubble.innerHTML = tutorEsc(shown);
+      setMsg(bubble, shown);
     }
     if (!msg.tool_calls || !msg.tool_calls.length) return shown || 'Pronto.';
     for (const tc of msg.tool_calls) {
@@ -202,39 +232,46 @@ async function apiAnswer(turns: SampleMessage[], context: string, bubble: HTMLEl
 }
 // mostra no subtítulo qual IA respondeu por último (a API troca de provedor sozinha)
 function showTutorProvider(name: string): void {
-  const el = $opt('#tutorSub');
-  if (el) el.textContent = `respondido por ${name} · treinos, exemplos e explicações`;
+  TUTOR.sub = `respondido por ${name} · treinos, exemplos e explicações`;
+  publish('board');
 }
 // verifica se a API do tutor está no ar e com pelo menos uma chave de IA configurada
 async function refreshKeyUi(): Promise<boolean> {
   if (!DESKTOP_AI) return true;
   const st = await DESKTOP_AI.status().catch(() => ({ reachable: false, ai: null }));
   const ready = Boolean(st.reachable && st.ai && st.ai.ready);
-  $('#tutorKeyForm').hidden = ready;
-  $('#tutorForm').hidden = !ready;
-  $('#tutorChips').hidden = !ready;
-  if (!ready) {
-    // mensagem genérica: detalhes de servidor e configuração não aparecem para o usuário
-    $('#tutorApiMsg').textContent = !st.reachable
+  TUTOR.ready = ready;
+  // mensagem genérica: detalhes de servidor e configuração não aparecem para o usuário
+  if (!ready)
+    TUTOR.apiMsg = !st.reachable
       ? 'Não foi possível conectar ao tutor. Confira sua internet e tente de novo.'
       : 'O tutor está indisponível no momento. Tente de novo mais tarde.';
-  }
+  publish('board');
   return ready;
 }
-function tutorAdd(role: 'user' | 'assistant' | 'note', text: string): HTMLElement {
-  const el = document.createElement('div');
-  el.className = 'tmsg ' + role;
-  el.innerHTML = role === 'note' ? esc(text) : tutorEsc(text);
-  $('#tutorLog').appendChild(el);
-  $('#tutorLog').scrollTop = 1e9;
-  return el;
+function tutorAdd(role: TutorMsg['role'], text: string, extra?: Partial<TutorMsg>, first?: boolean): TutorMsg {
+  const m: TutorMsg = { id: ++msgSeq, role, text, ...extra };
+  TUTOR.log = first ? [m, ...TUTOR.log] : [...TUTOR.log, m];
+  TUTOR.scroll++;
+  publish('board');
+  return m;
+}
+/** troca o texto de uma mensagem (resposta chegando) e tira o "pensando" */
+function setMsg(m: TutorMsg, text: string, scroll?: boolean): void {
+  TUTOR.log = TUTOR.log.map((x) => (x.id === m.id ? { ...x, text, pending: false } : x));
+  if (scroll) TUTOR.scroll++;
+  publish('board');
+}
+function dropMsg(m: TutorMsg): void {
+  TUTOR.log = TUTOR.log.filter((x) => x.id !== m.id);
+  publish('board');
 }
 export function tutorNote(text: string): void {
-  if ($opt('#tutorLog')) tutorAdd('note', text);
+  tutorAdd('note', text);
 }
 function tutorStatus(text: string): void {
-  const st = $opt('#tutorStatus');
-  if (st) st.textContent = text;
+  TUTOR.status = text;
+  publish('board');
 }
 async function tutorSend(raw: string): Promise<void> {
   const text = String(raw || '').trim();
@@ -252,17 +289,14 @@ async function tutorSend(raw: string): Promise<void> {
   TUTOR.turns.push({ role: 'user', content: text });
   TUTOR.turns = TUTOR.turns.slice(-14);
   if ((TUTOR.turns[0] as SampleMessage).role !== 'user') TUTOR.turns.shift();
-  const bubble = tutorAdd('assistant', 'Pensando…');
-  bubble.classList.add('pending');
   TUTOR.busy = true;
   TUTOR.ctl = new AbortController();
-  renderTutorBusy();
+  const bubble = tutorAdd('assistant', 'Pensando…', { pending: true });
   const context = `\n\nEstado atual do app (JSON): ${JSON.stringify(gameSummary())}`;
   try {
     if (DESKTOP_AI) {
       const answer = await apiAnswer(TUTOR.turns, context, bubble, TUTOR.ctl.signal);
-      bubble.classList.remove('pending');
-      bubble.innerHTML = tutorEsc(answer);
+      setMsg(bubble, answer);
       TUTOR.turns.push({ role: 'assistant', content: answer });
       return;
     }
@@ -277,22 +311,16 @@ async function tutorSend(raw: string): Promise<void> {
         signal: TUTOR.ctl.signal,
         tools: TUTOR_TOOLS,
         modelTier: 'default',
-        onText: ({ text: t }) => {
-          bubble.classList.remove('pending');
-          bubble.innerHTML = tutorEsc(t);
-          $('#tutorLog').scrollTop = 1e9;
-        },
+        onText: ({ text: t }) => setMsg(bubble, t, true),
       },
     );
-    bubble.classList.remove('pending');
-    bubble.innerHTML = tutorEsc(answer);
+    setMsg(bubble, answer);
     TUTOR.turns.push({ role: 'assistant', content: answer });
   } catch (e) {
     const err = e as TutorError | null | undefined;
-    bubble.classList.remove('pending');
     const partial = err && err.text;
-    if (partial) bubble.innerHTML = tutorEsc(partial);
-    else bubble.remove();
+    if (partial) setMsg(bubble, partial);
+    else dropMsg(bubble);
     const code = err && err.code;
     if (
       code === 'not_granted' ||
@@ -323,7 +351,6 @@ async function tutorSend(raw: string): Promise<void> {
     TUTOR.busy = false;
     TUTOR.ctl = null;
     tutorStatus('');
-    renderTutorBusy();
   }
 }
 function tutorUnavailable(code?: string): void {
@@ -331,41 +358,31 @@ function tutorUnavailable(code?: string): void {
     code === 'not_granted'
       ? 'O uso do Claude não foi permitido nesta página. Para usar o tutor, permita o acesso quando o pedido aparecer (ou no menu de permissões do artifact).'
       : 'O tutor de IA usa o Claude e funciona quando o Lance a Lance é aberto no claude.ai. Neste app ele ainda não está disponível.';
-  if (!$opt('#tutorLog .tmsg.unavail')) {
-    const el = tutorAdd('note', msg);
-    el.classList.add('unavail');
-  }
-}
-function renderTutorBusy(): void {
-  $('#tutorSend').hidden = TUTOR.busy;
-  $('#tutorStop').hidden = !TUTOR.busy;
-  $<HTMLTextAreaElement>('#tutorIn').disabled = TUTOR.busy;
-  for (const b of document.querySelectorAll<HTMLButtonElement>('#tutorChips button')) b.disabled = TUTOR.busy;
+  if (!TUTOR.log.some((m) => m.unavail)) tutorAdd('note', msg, { unavail: true });
 }
 const GREETING =
   'Oi! Sou o tutor de aberturas. Diga o que você quer estudar, por exemplo **"quero aprender a Abertura Italiana"**. Eu posso montar um treino em que o bot joga a teoria, mostrar partidas de exemplo entre dois bots ou deixar você jogar a abertura enquanto o bot se defende.';
 export function setTutor(open: boolean): void {
   if (open) setStudy(false); // o estudo de aberturas ocupa o mesmo canto da tela
-  $('#tutor').hidden = !open;
-  $('#openTutor').setAttribute('aria-expanded', String(open));
-  $('#tutorSub').textContent = `com ${AI_NAME} · treinos, exemplos e explicações`;
+  UI.tutor = open;
+  TUTOR.sub = `com ${AI_NAME} · treinos, exemplos e explicações`;
+  publish('board');
   if (open && DESKTOP_AI) {
     if (!TUTOR.greeted) {
       TUTOR.greeted = true;
       tutorAdd('assistant', GREETING);
     }
     refreshKeyUi().then((ok) => {
-      if (ok) $('#tutorIn').focus();
+      if (ok && REFS.tutorIn) REFS.tutorIn.focus();
     });
     return;
   }
   if (open) {
     if (!TUTOR.greeted) {
       TUTOR.greeted = true;
-      const g = tutorAdd('assistant', GREETING);
-      $('#tutorLog').prepend(g);
+      tutorAdd('assistant', GREETING, undefined, true); // a saudação fica no topo, antes dos avisos já dados
     }
-    $('#tutorIn').focus();
+    if (REFS.tutorIn) REFS.tutorIn.focus();
     if (TUTOR.sample === null) tutorUnavailable();
     else if (TUTOR.sample === undefined && window.claude?.use)
       window.claude.use('sample').then(
@@ -384,32 +401,26 @@ export function setTutor(open: boolean): void {
 export function abortTutor(): void {
   if (TUTOR.ctl) TUTOR.ctl.abort();
 }
+export const toggleTutor = (): void => setTutor(!UI.tutor);
+/** envia o que está no campo (Enter ou botão Enviar) */
+export function tutorSubmit(): void {
+  const el = REFS.tutorIn;
+  if (!el) return;
+  const v = el.value;
+  el.value = '';
+  tutorSend(v);
+}
+export const tutorChip = (q: string): Promise<void> => tutorSend(q);
+export const tutorStop = (): void => {
+  if (TUTOR.ctl) TUTOR.ctl.abort();
+};
+/** "Tentar de novo" quando a API do tutor estava fora */
+export async function tutorRetry(): Promise<void> {
+  if (await refreshKeyUi()) {
+    tutorNote('Tutor conectado.');
+    if (REFS.tutorIn) REFS.tutorIn.focus();
+  }
+}
 export function initTutor(): void {
-  $('#openTutor').onclick = () => setTutor($('#tutor').hidden);
-  $('#tutorClose').onclick = () => setTutor(false);
-  $<HTMLFormElement>('#tutorForm').onsubmit = (e) => {
-    e.preventDefault();
-    const v = $<HTMLTextAreaElement>('#tutorIn').value;
-    $<HTMLTextAreaElement>('#tutorIn').value = '';
-    tutorSend(v);
-  };
-  $('#tutorIn').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      $<HTMLFormElement>('#tutorForm').requestSubmit();
-    }
-  });
-  $('#tutorStop').onclick = () => TUTOR.ctl && TUTOR.ctl.abort();
-  $('#tutorChips').onclick = (e) => {
-    const b = target(e).closest<HTMLElement>('button');
-    if (b) tutorSend(b.dataset.q || (b.textContent as string));
-  };
   if (!window.claude && !DESKTOP_AI) TUTOR.sample = null;
-  $<HTMLFormElement>('#tutorKeyForm').onsubmit = async (e) => {
-    e.preventDefault();
-    if (await refreshKeyUi()) {
-      tutorNote('Tutor conectado.');
-      $('#tutorIn').focus();
-    }
-  };
 }

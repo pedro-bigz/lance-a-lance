@@ -1,4 +1,4 @@
-/* ---------- Início (view inicio): ilha React ----------
+/* ---------- Início (view inicio): componente ----------
    Recarrega ao abrir a tela e quando uma partida gravada muda o que ela mostra (tópico 'tela:inicio'). Enquanto
    recarrega, mostra os dados anteriores; "Carregando…" só aparece na primeira vez. */
 import { useLayoutEffect, useState } from 'react';
@@ -22,9 +22,9 @@ import {
   openContinue,
   type Continue,
 } from './home';
-import { HistItem } from './react/hist-item';
-import { useLatest, useViewRefresh } from './react/hooks';
-import { FormMsg, msgOf, type Msg } from './react/modal';
+import { HistItem } from '../react/hist-item';
+import { useLatest, useViewRefresh } from '../react/hooks';
+import { FormMsg, msgOf, type Msg } from '../react/modal';
 import { newGameFlow } from './sidebar';
 
 function MiniBoard({ fen, orient }: { fen: string; orient: 'w' | 'b' }) {

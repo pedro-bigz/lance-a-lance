@@ -1,9 +1,7 @@
 // Aviso curto no rodapé da tela (some sozinho)
-import { $opt } from './dom';
-
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
 export function viewToast(text: string): void {
-  let el = $opt('#viewToast');
+  let el = document.getElementById('viewToast');
   if (!el) {
     el = document.createElement('div');
     el.id = 'viewToast';

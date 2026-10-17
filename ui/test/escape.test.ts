@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { esc, tutorEsc } from '../src/ui/escape';
+import { esc } from '../src/ui/escape';
 import { fmtDelta, pct } from '../src/ui/format';
 import { parseInfo } from '../src/engine/engine';
 
@@ -9,9 +9,6 @@ describe('escape de HTML', () => {
     expect(esc("d'Ávila")).toBe("d'Ávila");
     expect(esc(42)).toBe('42');
     expect(esc(null)).toBe('null');
-  });
-  it('texto do tutor: escapa e só então aplica **negrito** e quebras de linha', () => {
-    expect(tutorEsc('**Italiana**\n<script>')).toBe('<b>Italiana</b><br>&lt;script&gt;');
   });
 });
 

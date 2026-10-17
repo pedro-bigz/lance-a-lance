@@ -46,6 +46,9 @@ const { openProfile } = await import('../../src/desktop/profile');
 const { refreshView } = await import('../../src/desktop/views');
 const { ACCOUNT } = await import('../../src/desktop/account');
 const { setGameStore } = await import('../../src/store/game-store');
+const { TopBar } = await import('../../src/game/top-bar');
+const { Sidebar } = await import('../../src/desktop/sidebar-view');
+const { SIDEBAR } = await import('../../src/desktop/sidebar');
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -62,7 +65,12 @@ describe('Início', () => {
   });
   it('com dados: saudação, pontuação, resumo, partida em andamento e últimas partidas', async () => {
     setGameStore(fakeStore([game('a'), game('b', { status: 'andamento', result: null, resultText: '', updatedAt: Date.UTC(2026, 9, 2, 12) })]));
-    render(<HomeView />);
+    render(
+      <>
+        <TopBar />
+        <HomeView />
+      </>,
+    );
     act(() => refreshView('inicio'));
     await waitFor(() => expect(document.querySelectorAll('#homeRecent .hist-item').length).toBe(2));
     expect(document.getElementById('homeHello')!.textContent).toMatch(/^(Bom dia|Boa tarde|Boa noite), Ana$/);
@@ -102,7 +110,13 @@ describe('Início', () => {
 
 describe('Perfil', () => {
   it('abre preenchido com foco no nome, valida, salva e Esc fecha devolvendo o foco ao avatar', async () => {
-    render(<ProfileView />);
+    SIDEBAR.shown = true; // o avatar (#openUser) fica na sidebar, que aparece depois do login
+    render(
+      <>
+        <Sidebar />
+        <ProfileView />
+      </>,
+    );
     const modal = document.getElementById('profileModal')!;
     expect(modal.hidden).toBe(true);
     act(() => openProfile());

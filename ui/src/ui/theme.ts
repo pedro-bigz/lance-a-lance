@@ -1,33 +1,32 @@
 /* ---------- Tema (claro, escuro ou seguir o sistema) e preferências salvas ----------
-   O tema salvo já é aplicado antes de desenhar a página (script inline em index.html); aqui fica o seletor do menu
-   da conta (app desktop) e a gravação das preferências junto com o estilo do tabuleiro. */
+   O tema salvo já é aplicado antes de desenhar a página (script inline em index.html); aqui fica a escolha do menu
+   da conta (app desktop, desenhada na sidebar) e a gravação das preferências junto com o estilo do tabuleiro. */
 import { STYLE } from '../board/pieces';
 import { PREFS, readPrefs } from '../store/local';
-import { $, target } from './dom';
+import { publishShell } from '../store/view-store';
 
 export type ThemeChoice = 'light' | 'dark' | 'system';
 /** preferências lidas ao abrir a página (estilo e tema) */
 export const prefs = readPrefs();
-let UI_THEME: ThemeChoice = 'system'; // claro, escuro ou seguir o sistema (menu da conta, no app desktop)
+/** claro, escuro ou seguir o sistema (menu da conta, no app desktop) */
+export const THEME: { choice: ThemeChoice } = { choice: 'system' };
 export function writePrefs(): void {
   try {
-    localStorage.setItem(PREFS, JSON.stringify({ board: STYLE.board, pieces: STYLE.pieces, capture: STYLE.capture, theme: UI_THEME }));
+    localStorage.setItem(PREFS, JSON.stringify({ board: STYLE.board, pieces: STYLE.pieces, capture: STYLE.capture, theme: THEME.choice }));
   } catch (_) {}
 }
 function applyTheme(): void {
   const root = document.documentElement;
-  if (UI_THEME === 'system') delete root.dataset.theme;
-  else root.dataset.theme = UI_THEME;
-  for (const b of $('#themeSeg').children) b.setAttribute('aria-pressed', String((b as HTMLElement).dataset.v === UI_THEME));
+  if (THEME.choice === 'system') delete root.dataset.theme;
+  else root.dataset.theme = THEME.choice;
+  publishShell();
+}
+export function setTheme(v: ThemeChoice): void {
+  THEME.choice = v;
+  applyTheme();
+  writePrefs();
 }
 export function initTheme(): void {
-  UI_THEME = prefs.theme === 'light' || prefs.theme === 'dark' ? prefs.theme : 'system';
-  $('#themeSeg').onclick = (e) => {
-    const b = target(e).closest<HTMLElement>('button[data-v]');
-    if (!b) return;
-    UI_THEME = b.dataset.v as ThemeChoice;
-    applyTheme();
-    writePrefs();
-  };
+  THEME.choice = prefs.theme === 'light' || prefs.theme === 'dark' ? prefs.theme : 'system';
   applyTheme();
 }

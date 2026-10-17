@@ -1,15 +1,14 @@
 /* Escolher a abertura: busca no livro (findLines), agrupa por família (nome antes de ":") e mostra a linha principal.
-   "Ver a linha" reproduz a variante (buildDemo sem lances extras + playDemo). */
+   "Ver a linha" reproduz a variante (buildDemo sem lances extras + playDemo). O desenho fica em study-panel.tsx. */
 import { findLines, pgnOf, type BookLine } from '../book/index';
 import { goView } from '../desktop/views';
+import { REFS } from '../game/ui-state';
+import { publish } from '../store/view-store';
 import { buildDemo, playDemo } from '../tutor/training';
-import { $, $opt } from '../ui/dom';
-import { esc } from '../ui/escape';
-import { busy } from '../ui/forms';
 import { studyNeedsCtx } from './practice';
 import { STUDY, type StudyGroup } from './state';
 
-const STUDY_POPULAR = [
+export const STUDY_POPULAR = [
   'Italiana',
   'Ruy Lopez',
   'Siciliana',
@@ -50,63 +49,52 @@ function studyGroups(q: string): StudyGroup[] {
     .sort((a, b) => b.lines.length - a.lines.length)
     .map((g) => ({ ...g, vars: [...g.vars.values()].sort((a, b) => b.lines.length - a.lines.length) }));
 }
+let groupsMemo: { q: string; groups: StudyGroup[] } = { q: '', groups: [] };
+/** famílias (até 8) para a busca atual; vazio sem busca */
+export function groupsFor(q: string): StudyGroup[] {
+  q = q.trim();
+  if (!q) return [];
+  if (groupsMemo.q !== q) groupsMemo = { q, groups: studyGroups(q).slice(0, 8) };
+  return groupsMemo.groups;
+}
 export function studySelect(fam: string, lines: BookLine[], v?: string): void {
   const vars = new Set(lines.map((l) => varOf(l.name)));
   const one = v != null ? v : vars.size === 1 ? ([...vars][0] as string) : '';
   STUDY.sel = { title: one ? `${fam}: ${one}` : fam, lines, main: mainLine(lines), names: new Set(lines.map((l) => l.name)).size };
-  renderStudyPick();
-  const b = $opt('#studyPick [data-act="watch"]');
+  publish('board');
+  const b = document.querySelector<HTMLElement>('#studyPick [data-act="watch"]');
   if (b) b.focus();
 }
-const shortPgn = (sans: string[], n = 10) => pgnOf(sans.slice(0, n)) + (sans.length > n ? ' …' : '');
-export function renderStudyPick(): void {
-  const el = $('#studyPick'),
-    q = STUDY.q.trim(),
-    sel = STUDY.sel;
-  let html = '';
-  if (sel) {
-    const nl = sel.lines.length;
-    html += `<div class="st-sel"><div class="st-sel-h"><b>${esc(sel.title)}</b><button class="link-btn" data-act="unsel">Trocar</button></div>
-      <p class="st-pgn">${esc(pgnOf(sel.main.sans))}</p>
-      <small>Linha principal: ${esc(sel.main.name)} · ${sel.names} variante${sel.names === 1 ? '' : 's'} (${nl} linha${nl === 1 ? '' : 's'} do livro)</small>
-      <div class="row"><button class="btn" data-act="watch">Ver a linha</button><button class="btn primary" data-act="prac-w">Praticar de brancas</button><button class="btn primary" data-act="prac-b">Praticar de pretas</button></div></div>`;
-  }
-  if (!q) {
-    STUDY.groups = [];
-    html += `<p class="st-lab">Populares</p><div class="tutor-chips">${STUDY_POPULAR.map((n) => `<button data-q="${esc(n)}">${esc(n)}</button>`).join('')}</div>`;
-  } else {
-    STUDY.groups = studyGroups(q).slice(0, 8);
-    if (!STUDY.groups.length)
-      html += `<p class="st-empty">Nada no livro para “${esc(q)}”. Tente outro nome, como “siciliana” ou “gambito evans”.</p>`;
-    STUDY.groups.forEach((g, gi) => {
-      const shown = g.vars.slice(0, 6);
-      html +=
-        `<div class="st-fam"><button class="st-fam-h" data-g="${gi}">${esc(g.fam)}<small>${g.lines.length} linha${g.lines.length === 1 ? '' : 's'} · ver tudo</small></button>` +
-        shown
-          .map(
-            (vg, vi) =>
-              `<button class="st-var" data-g="${gi}" data-v="${vi}"><b>${esc(vg.v || 'Linha principal')}</b><span>${esc(shortPgn(mainLine(vg.lines).sans))}</span></button>`,
-          )
-          .join('') +
-        (g.vars.length > shown.length
-          ? `<div class="st-more">+${g.vars.length - shown.length} variantes: refine a busca ou escolha a família inteira</div>`
-          : '') +
-        '</div>';
-    });
-  }
-  el.innerHTML = html;
+/** família inteira (gi) ou uma variante dela (vi) da busca atual */
+export function studySelectGroup(gi: number, vi?: number): void {
+  const grp = groupsFor(STUDY.q)[gi];
+  if (!grp) return;
+  if (vi != null) {
+    const vg = grp.vars[vi];
+    if (vg) studySelect(grp.fam, vg.lines, vg.v);
+  } else studySelect(grp.fam, grp.lines);
 }
+/** chip "Populares": vira a busca */
+export function studySearch(q: string): void {
+  if (REFS.studyQ) REFS.studyQ.value = q;
+  STUDY.q = q;
+  publish('board');
+}
+export function studyUnselect(): void {
+  STUDY.sel = null;
+  publish('board');
+  if (REFS.studyQ) REFS.studyQ.focus();
+}
+export const shortPgn = (sans: string[], n = 10): string => pgnOf(sans.slice(0, n)) + (sans.length > n ? ' …' : '');
 // "Ver a linha": reproduz a linha principal no tabuleiro, lance a lance
-export async function studyWatch(btn: HTMLElement): Promise<void> {
+export async function studyWatch(): Promise<void> {
   const sel = STUDY.sel;
-  if (!sel) return;
-  if (studyNeedsCtx()) {
-    goView('aberturas');
-    btn = $opt('#studyPick [data-act="watch"]') || btn;
-  }
-  busy(btn as HTMLButtonElement, true, 'Preparando…');
+  if (!sel || STUDY.watchBusy) return;
+  if (studyNeedsCtx()) goView('aberturas');
+  STUDY.watchBusy = true;
+  publish('board');
   const demo = await buildDemo(sel.main, 0);
-  busy(btn as HTMLButtonElement, false);
+  STUDY.watchBusy = false;
   STUDY.practice = null;
   playDemo(demo);
 }

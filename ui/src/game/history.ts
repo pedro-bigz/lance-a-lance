@@ -1,5 +1,6 @@
 /* ---------- Histórico de partidas ----------
-   Itens da lista (modal do Tabuleiro, página Histórico e Início), abrir uma partida salva e o modal de histórico. */
+   Dados dos itens da lista (modal do Tabuleiro, página Histórico e Início), abrir uma partida salva e o estado do
+   modal de histórico do Tabuleiro (desenhado por HistoryModal em game/history-modal.tsx). */
 import { DEFAULT_BOT, uciObj, type Bot } from '../core/constants';
 import { applyMove, checkOver, resetBoard } from '../core/game';
 import { S, botColor, findBot, sideName } from '../core/state';
@@ -11,15 +12,13 @@ import { boardCtx } from '../store/contexts';
 import { GameStore } from '../store/game-store';
 import { save } from '../store/session';
 import type { GameRecord } from '../store/types';
+import { publish } from '../store/view-store';
 import { currentView, goView } from '../desktop/views';
-import { $, target } from '../ui/dom';
-import { esc } from '../ui/escape';
 import { fmtDate, fmtDelta } from '../ui/format';
 import { viewToast } from '../ui/toast';
-import { GLYPH } from '../board/pieces';
 import { setDrawer } from './menus';
-import { renderAll } from './panel';
 import { ratingInfo } from './rating';
+import { UI } from './ui-state';
 
 export const RESULT_UI: Record<'andamento' | LocalResult, [string, string]> = {
   andamento: ['Em andamento', 'andamento'],
@@ -30,7 +29,23 @@ export const RESULT_UI: Record<'andamento' | LocalResult, [string, string]> = {
   importada: ['Importada', 'neutra'],
   livre: ['Concluída', 'neutra'],
 };
-let histFilter = 'todas';
+export type HistFilter = 'todas' | 'andamento' | 'concluida';
+/** lista do modal de histórico: filtro, partidas carregadas (null = nunca carregou) e erro */
+export const HIST: {
+  filter: HistFilter;
+  /** null = ainda não carregou ("Carregando…" depois da primeira abertura) */
+  games: GameRecord[] | null;
+  /** a lista já foi pedida alguma vez (antes disso fica vazia) */
+  asked: boolean;
+  error: boolean;
+  del: Record<string, 'armed' | 'busy' | 'retry'>;
+} = {
+  filter: 'todas',
+  games: null,
+  asked: false,
+  error: false,
+  del: {},
+};
 export function recBot(r: Pick<GameRecord, 'bot'>): Bot {
   return findBot(r.bot) || DEFAULT_BOT;
 }
@@ -46,31 +61,46 @@ export async function renderHistCount(): Promise<void> {
   const t = ++histCountToken;
   const n = await store.count().catch(() => null);
   if (t !== histCountToken) return;
-  $('#histCount').textContent = n == null ? '' : n ? `${n} salva${n > 1 ? 's' : ''}` : 'nenhuma';
+  UI.histCount = n == null ? '' : n ? `${n} salva${n > 1 ? 's' : ''}` : 'nenhuma';
+  publish('board');
 }
 let histToken = 0;
+/** recarrega a lista do modal (o desenho filtra por HIST.filter) */
 export async function renderHistory(): Promise<void> {
   const store = GameStore!;
-  for (const x of $('#histFilter').children) x.setAttribute('aria-pressed', String((x as HTMLElement).dataset.f === histFilter));
-  const el = $('#histList'),
-    t = ++histToken;
-  if (!el.children.length) el.innerHTML = '<li class="hist-empty">Carregando…</li>';
+  const t = ++histToken;
+  if (!HIST.asked) {
+    HIST.asked = true;
+    publish('board');
+  }
   const res = await store.list({ limit: store.kind === 'api' ? 100 : 200 }).catch(() => ({ games: [] as GameRecord[], total: 0, error: 'erro' }));
   if (t !== histToken) return;
-  const all = res.games;
-  const list = all.filter((g) => histFilter === 'todas' || g.status === histFilter);
-  if (!list.length) {
-    const empty =
-      store.kind === 'api'
-        ? 'Nenhuma partida salva ainda. Toda partida que você jogar aparece aqui sozinha.'
-        : 'Nenhuma partida salva ainda. Toda partida que você jogar aparece aqui sozinha; para testar, carregue os exemplos abaixo.';
-    el.innerHTML = `<li class="hist-empty">${res.error && !all.length ? 'Não foi possível carregar as partidas. Confira sua conexão e abra o histórico de novo.' : all.length ? 'Nenhuma partida neste filtro.' : empty}</li>`;
-    return;
-  }
-  el.innerHTML = list.map((r) => histItemHtml(r)).join('');
+  HIST.games = res.games;
+  HIST.error = !!res.error;
+  HIST.del = {};
+  publish('board');
 }
-/** dados de um item da lista de partidas (modal de histórico, página Histórico e Início); o HTML (histItemHtml) e o
-    componente React (desktop/react/hist-item.tsx) só desenham isto */
+/** texto da lista vazia do modal (null = há itens no filtro) */
+export function histEmptyText(list: GameRecord[]): string | null {
+  const all = HIST.games || [];
+  if (list.length) return null;
+  const empty =
+    GameStore && GameStore.kind === 'api'
+      ? 'Nenhuma partida salva ainda. Toda partida que você jogar aparece aqui sozinha.'
+      : 'Nenhuma partida salva ainda. Toda partida que você jogar aparece aqui sozinha; para testar, carregue os exemplos abaixo.';
+  return HIST.error && !all.length
+    ? 'Não foi possível carregar as partidas. Confira sua conexão e abra o histórico de novo.'
+    : all.length
+      ? 'Nenhuma partida neste filtro.'
+      : empty;
+}
+export function setHistFilter(f: HistFilter): void {
+  HIST.filter = f;
+  publish('board');
+  renderHistory();
+}
+/** dados de um item da lista de partidas (modal de histórico, página Histórico e Início); o componente HistItem
+    (react/hist-item.tsx) só desenha isto */
 export interface HistItemView {
   id: string;
   cls: string;
@@ -115,38 +145,21 @@ export function histItemView(r: GameRecord): HistItemView {
     act: andamento ? 'Continuar ▸' : 'Rever ▸',
   };
 }
-// um item da lista de partidas em HTML (modal de histórico); del:false tira o botão Excluir
-export function histItemHtml(r: GameRecord, { del = true }: { del?: boolean } = {}): string {
-  const v = histItemView(r);
-  const rtxt = v.detail
-    ? v.detail.rating
-      ? ` · <span class="${v.detail.rating.cls}">${v.detail.rating.text}</span>`
-      : v.detail.rated
-        ? ' · vale rating'
-        : ''
-    : '';
-  const detail = v.detail ? `<small>${esc(v.detail.text)}${rtxt}</small>` : '';
-  return `<li class="${v.cls}">
-    <button class="hist-open" data-open="${esc(v.id)}">
-      <span class="hist-ico ${v.ico}" aria-hidden="true">${GLYPH.k}</span>
-      <span class="hist-main"><b>${esc(v.title)}${v.mock ? '<span class="mock-tag">exemplo</span>' : ''}</b><small>${esc(v.meta)}</small>${detail}</span>
-      <span class="hist-side"><span class="chip">${v.label}</span><span class="hist-act">${v.act}</span></span>
-    </button>
-    ${del ? `<button class="hist-del" data-del="${esc(v.id)}" aria-label="Excluir ${esc(v.title)}">Excluir</button>` : ''}
-  </li>`;
-}
 let histReturnFocus: Element | null = null;
 export function openHistory(): void {
   histReturnFocus = document.activeElement;
   setDrawer(null);
   closeStyle(false);
-  $('#historyModal').hidden = false;
+  UI.history = true;
+  publish('board');
   renderHistory();
-  $('#historyModal .modal-card').focus();
+  const card = document.querySelector<HTMLElement>('#historyModal .modal-card');
+  if (card) card.focus();
 }
 export function closeHistory(): void {
-  if ($('#historyModal').hidden) return;
-  $('#historyModal').hidden = true;
+  if (!UI.history) return;
+  UI.history = false;
+  publish('board');
   if (histReturnFocus && (histReturnFocus as HTMLElement).focus) (histReturnFocus as HTMLElement).focus();
 }
 export function openRecord(r: GameRecord): void {
@@ -188,7 +201,7 @@ export function openRecord(r: GameRecord): void {
   S.view = null;
   closeHistory();
   save();
-  renderAll();
+  publish();
   if (!concluded) maybeBot();
 }
 // abre uma partida da lista: em andamento retoma, concluída abre em revisão. No desktop vai para a view do jogo.
@@ -204,45 +217,24 @@ export async function openGameById(id: string): Promise<boolean> {
   if (cv && cv !== 'jogo') goView('jogo');
   return true;
 }
-export function initHistoryModal(): void {
-  $('#openHistory').onclick = openHistory;
-  $('#histClose').onclick = closeHistory;
-  $('#historyModal').addEventListener('pointerdown', (e) => {
-    if (target(e).id === 'historyModal') closeHistory();
-  });
-  $('#histFilter').onclick = (e) => {
-    const b = target(e).closest<HTMLElement>('button[data-f]');
-    if (b) {
-      histFilter = b.dataset.f as string;
-      renderHistory();
-    }
-  };
-  $('#histList').onclick = async (e) => {
-    const del = target(e).closest<HTMLButtonElement>('[data-del]');
-    if (del) {
-      if (!del.classList.contains('armed')) {
-        for (const x of $('#histList').querySelectorAll('.hist-del.armed')) {
-          x.classList.remove('armed');
-          x.textContent = 'Excluir';
-        }
-        del.classList.add('armed');
-        del.textContent = 'Confirmar';
-        return;
-      }
-      const id = del.dataset.del as string;
-      del.disabled = true;
-      const ok = await GameStore!.remove(id);
-      if (!ok) {
-        del.disabled = false;
-        del.textContent = 'Tente de novo';
-        return;
-      }
-      if (S.gameId === id) S.gameId = null;
-      renderHistory();
-      renderHistCount();
-      return;
-    }
-    const open = target(e).closest<HTMLElement>('[data-open]');
-    if (open) openGameById(open.dataset.open as string);
-  };
+// Excluir em dois cliques no modal: o primeiro arma (e desarma os outros), o segundo apaga
+export async function histDelete(id: string): Promise<void> {
+  const st = HIST.del[id];
+  if (!st) {
+    HIST.del = { [id]: 'armed' };
+    publish('board');
+    return;
+  }
+  if (st === 'busy') return;
+  HIST.del = { ...HIST.del, [id]: 'busy' };
+  publish('board');
+  const ok = await GameStore!.remove(id);
+  if (!ok) {
+    HIST.del = { ...HIST.del, [id]: 'retry' };
+    publish('board');
+    return;
+  }
+  if (S.gameId === id) S.gameId = null;
+  renderHistory();
+  renderHistCount();
 }

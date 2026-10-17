@@ -1,4 +1,4 @@
-/* Modal e mensagem de formulário das ilhas React, com o mesmo HTML e o mesmo comportamento dos modais da página:
+/* Modal e mensagem de formulário das telas React, com o mesmo HTML e o mesmo comportamento dos outros modais:
    <div class="modal" id hidden> fica sempre no DOM (só troca o hidden), dentro de #appRoot ao lado dos outros modais
    (createPortal); ao abrir, o foco vai para initialFocus; Esc e clique no fundo fecham; ao fechar, o foco volta para
    returnFocus (se o elemento ainda estiver na página). */

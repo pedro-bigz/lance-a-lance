@@ -1,6 +1,6 @@
 /* ---------- Estado da partida no tabuleiro ----------
    S é o estado único do tabuleiro (a partida aberta, a análise e a interação). Quem muda a partida são as funções
-   de core/game.ts; as telas leem daqui. Na etapa 3 isto vira o estado de um componente/store. */
+   de core/game.ts; os componentes leem daqui e redesenham a cada publish() (store/view-store.ts). */
 import { Chess, type Color } from 'chess.js';
 import { BOTS, DEFAULT_BOT, type Bot, type DepthKey } from './constants';
 import type { LocalResult } from './result';
@@ -112,6 +112,8 @@ export const S: GameState = {
 
 // modo normal: avaliações escondidas até o fim da partida (na prática do estudo aparecem na hora: o objetivo é aprender)
 export const blind = (): boolean => S.mode === 'play' && S.gameMode === 'normal' && !S.over && !studyPractice();
+/** a partida já foi montada (bootApp); antes disso a tela do jogo fica vazia, como a marcação de antes do login */
+export const gameReady = (): boolean => S.positions.length > 0;
 export const viewIdx = (): number => (S.view == null ? S.positions.length - 1 : S.view);
 export const isLive = (): boolean => viewIdx() === S.positions.length - 1;
 export const botColor = (): Color | null => (S.mode === 'play' && S.bot.id !== 'none' ? (S.player === 'w' ? 'b' : 'w') : null);

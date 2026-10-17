@@ -1,5 +1,5 @@
 /* ---------- Painel de administração (view admin): regras ----------
-   Papéis, validação do formulário de usuário e o tratamento de 403. O desenho é a ilha React de admin-view.tsx. */
+   Papéis, validação do formulário de usuário e o tratamento de 403. O desenho é o componente de admin-view.tsx. */
 import type { ApiRole, ApiUser, IpcFail } from '../types/api';
 import { viewToast } from '../ui/toast';
 import { ACCOUNT, EMAIL_RE, renderAccount } from './account';
