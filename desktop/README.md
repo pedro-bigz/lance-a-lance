@@ -2,7 +2,7 @@
 
 App de xadrez para macOS, Windows e Linux: jogue contra bots ou abra um PGN, e o Stockfish classifica
 cada lance (brilhante, ótima, melhor, excelente, boa, imprecisão, erro, chance perdida, capivarada).
-Funciona offline: motor, biblioteca de xadrez e fontes vão dentro do app.
+Funciona offline: motor (Stockfish 19 lite em WebAssembly, com reserva em asm.js), biblioteca de xadrez e fontes vão dentro do app.
 
 ## Como está montado
 
@@ -10,9 +10,13 @@ Funciona offline: motor, biblioteca de xadrez e fontes vão dentro do app.
   é a mesma página publicada como artifact, com o JS (inclusive o chess.js) e o CSS embutidos.
 - `scripts/prepare.mjs` roda o build da ui (com as dependências de `../ui/node_modules`; instale-as antes com
   `corepack pnpm@10.13.1 install` em `ui/`) e gera `app/` a partir dele: troca as fontes do Google pelas cópias em
-  `vendor/` e copia `stockfish.asm.js` e `pieces/` de `../ui/dist`. Com `--skip-ui-build` usa o `ui/dist` que já existe.
+  `vendor/` e copia `pieces/` e os arquivos do Stockfish listados em `../ui/dist/engine.json` (os da versão do build:
+  `VITE_STOCKFISH=sf10 node scripts/prepare.mjs` monta o app com o Stockfish 10). Com `--skip-ui-build` usa o
+  `ui/dist` que já existe.
   Sem as dependências da ui ou sem o build, para com uma mensagem dizendo o que rodar.
-- `main.js` abre a janela e serve `app/` pelo protocolo `app://`, para o Stockfish rodar num Web Worker.
+- `main.js` abre a janela e serve `app/` pelo protocolo `app://`, para o Stockfish rodar num Web Worker. O tipo de cada
+  arquivo vem de `mime.js` (o `.wasm` do Stockfish 19 só compila como `application/wasm`); `pnpm test` (`node --test`)
+  confere o mapa e que todo arquivo do motor do build tem tipo.
 - `electron-builder.yml` define os instaladores; `build/icon.png` é o ícone (`pnpm icons` gera de novo).
 - `.env` tem só o endereço da API (`LANCE_API_URL`). O app pede login (e-mail e senha) antes de abrir o
   tabuleiro; o token JWT fica no processo principal, cifrado com o `safeStorage` em `session.bin` na pasta de
@@ -107,4 +111,4 @@ O app não tem assinatura de desenvolvedor, então cada sistema pede confirmaç�
 
 ## Licença
 
-GPL-3.0 (o Stockfish é GPL). Fontes do Google Fonts sob a OFL.
+GPL-3.0 (o Stockfish é GPL; veja `../LICENSE` e `STOCKFISH-LICENSE.txt`, que vai dentro do app). Fontes do Google Fonts sob a OFL.
