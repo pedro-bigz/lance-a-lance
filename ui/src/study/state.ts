@@ -50,26 +50,33 @@ export interface Practice {
 }
 export interface StudyState {
   q: string;
-  groups: StudyGroup[];
   sel: StudySel | null;
   practice: Practice | null;
   evals: Map<string, StudyEval>;
   pending: Map<string, Promise<StudyEval | null>>;
-  expKey: string | null;
+  /** cancela as avaliações do explorador que ainda não começaram (muda a cada posição nova ou ao fechar) */
   expTok: number;
-  pracKey: string | null;
+  /** "Escolher a abertura" e "Explorador de livro" abertos (details) */
+  pickOpen: boolean;
+  expOpen: boolean;
+  /** "Ver a linha" preparando a demonstração */
+  watchBusy: boolean;
   /** a prática recolheu a escolha e o explorador (reabrem quando ela acaba) */
   autoClosed?: boolean;
+  /** lances do explorador na posição exibida (para o clique numa linha) */
   expMoves?: NextMove[];
+  /** respostas das avaliações pedidas pelo explorador na posição atual (inclusive as com erro) */
+  expRes: Map<string, StudyEval>;
 }
 export const STUDY: StudyState = {
   q: '',
-  groups: [],
   sel: null,
   practice: null,
   evals: new Map(),
   pending: new Map(),
-  expKey: null,
   expTok: 0,
-  pracKey: null,
+  pickOpen: true,
+  expOpen: true,
+  watchBusy: false,
+  expRes: new Map(),
 };

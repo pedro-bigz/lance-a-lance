@@ -1,7 +1,13 @@
-// Hooks pequenos das ilhas React: versão de um tópico de dados, valor de um store e pedidos assíncronos que
-// ignoram respostas velhas (o "token" que as telas usavam antes).
+// Hooks pequenos dos componentes: versão da tela do jogo e do shell (store/view-store.ts), versão de um tópico de
+// dados, valor de um store e pedidos assíncronos que ignoram respostas velhas (o "token" que as telas usavam antes).
 import { useCallback, useRef, useSyncExternalStore } from 'react';
-import { subscribe, version, type Store } from '../../store/data-events';
+import { subscribe, version, type Store } from '../store/data-events';
+import { gameView, shellView } from '../store/view-store';
+
+/** assina a tela do jogo: o componente redesenha a cada publish() e lê S, UI, STUDY… na renderização */
+export const useGameView = (): number => useSyncExternalStore(gameView.subscribe, gameView.get);
+/** assina o shell (rota, sidebar, conta, login) */
+export const useShellView = (): number => useSyncExternalStore(shellView.subscribe, shellView.get);
 
 /** versão do tópico (muda a cada emit); 0 = nunca emitido */
 export function useDataVersion(topic: string): number {

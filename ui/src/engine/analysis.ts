@@ -1,14 +1,14 @@
 // Fila de análise da partida: cada posição vai uma vez ao Stockfish (cache por FEN) e, quando a nota chega,
-// os lances são reclassificados e a tela redesenhada.
+// os lances são reclassificados e a tela redesenhada (publish; no meio de uma animação de lance, logo depois dela).
 import { DEPTH } from '../core/constants';
 import { classify } from '../core/classify';
 import { terminalOf } from '../core/eval';
 import { S, blind, isLive } from '../core/state';
 import { bookLength } from '../book/index';
 import { ding } from '../board/sound';
-import { renderAll, setStatus } from '../game/panel';
 import { persistCls } from '../store/session';
-import { engine } from './engine';
+import { publish } from '../store/view-store';
+import { engine, setStatus } from './engine';
 
 export function requestAnalysis(fen: string): void {
   if (S.cache.has(fen) || S.pending.has(fen)) return;
@@ -47,8 +47,8 @@ function onAnalysis(): void {
   const wait = (S.animUntil || 0) - performance.now();
   if (wait > 0) {
     clearTimeout(S.animRerender);
-    S.animRerender = setTimeout(renderAll, wait + 30);
-  } else renderAll();
+    S.animRerender = setTimeout(publish, wait + 30);
+  } else publish();
 }
 export function classifyAll(): void {
   S.bookLen = bookLength(S.positions, S.plies.length);

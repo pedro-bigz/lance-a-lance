@@ -1,4 +1,4 @@
-/* ---------- Histórico (view historico): ilha React ----------
+/* ---------- Histórico (view historico): componente ----------
    Filtros, lista paginada, "Carregar mais", estados vazio/erro e o diálogo de exclusão. Recarrega do início ao abrir a
    tela e quando uma partida gravada muda a lista (tópico 'tela:historico'). */
 import { useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
@@ -9,9 +9,9 @@ import type { GameRecord } from '../store/types';
 import { fmtDate } from '../ui/format';
 import { viewToast } from '../ui/toast';
 import { createHistPager, hpCountText, hpFiltered, hpHasMore, type HistPager, type ResultFilter, type StatusFilter } from './history-page';
-import { HistItem } from './react/hist-item';
-import { useViewRefresh } from './react/hooks';
-import { FormMsg, Modal, msgOf, type Msg } from './react/modal';
+import { HistItem } from '../react/hist-item';
+import { useViewRefresh } from '../react/hooks';
+import { FormMsg, Modal, msgOf, type Msg } from '../react/modal';
 import { newGameFlow } from './sidebar';
 
 /** o pager da tela (um por app); os testes passam o seu */

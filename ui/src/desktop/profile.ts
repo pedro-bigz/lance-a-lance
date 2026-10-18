@@ -1,12 +1,11 @@
-/* Perfil: nome, sobrenome, e-mail e troca de senha. O modal é a ilha React de profile-view.tsx; aqui ficam a abertura
+/* Perfil: nome, sobrenome, e-mail e troca de senha. O modal é o componente de profile-view.tsx; aqui ficam a abertura
    (pelo menu da conta) e a validação. */
 import { createStore } from '../store/data-events';
 import type { ApiUser } from '../types/api';
-import { $ } from '../ui/dom';
 import { EMAIL_RE, setUserPop } from './account';
 import type { FormCheck } from './admin';
 
-/** modal de perfil aberto (a ilha assina) */
+/** modal de perfil aberto (o componente assina) */
 export const PROFILE_OPEN = createStore(false);
 export function openProfile(): void {
   setUserPop(false);
@@ -43,7 +42,4 @@ export function checkProfile(v: ProfileValues, u: ApiUser): FormCheck<ProfileFie
   }
   if (!Object.keys(data).length) return { info: 'Nada mudou no seu perfil.' };
   return { data };
-}
-export function initProfile(): void {
-  $('#openProfile').onclick = openProfile;
 }

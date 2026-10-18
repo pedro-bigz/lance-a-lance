@@ -9,12 +9,12 @@ import { closeStyle } from '../board/style-picker';
 import { requestAnalysis } from '../engine/analysis';
 import { botEngine } from '../engine/engine';
 import { setDrawer } from '../game/menus';
-import { renderAll } from '../game/panel';
 import { RATING } from '../game/rating';
 import { startReplay, stopReplay } from '../game/replay';
+import { UI } from '../game/ui-state';
 import { newId } from '../store/local';
 import { save } from '../store/session';
-import { $ } from '../ui/dom';
+import { publish } from '../store/view-store';
 import { tutorNote } from './tutor';
 
 // começa uma partida em que o bot segue as linhas da abertura escolhida
@@ -35,7 +35,7 @@ export function startTraining({
   closeStyle(false);
   stopReplay();
   S.pickBot = bot || (S.bot.id === 'none' ? recommendBot(RATING.rating) : S.bot);
-  for (const x of $('#colorSeg').children) x.setAttribute('aria-pressed', String((x as HTMLElement).dataset.v === userColor));
+  UI.color = userColor; // "Suas peças" da nova partida
   startGame({ lines: lines.map((l) => l.sans), name, done: false, prefer: prefer || null });
 }
 // demonstração: dois bots jogam a linha da abertura e seguem mais alguns lances pelo motor
@@ -75,7 +75,7 @@ export function playDemo(demo: Demo): void {
   S.orient = 'w';
   S.view = 0;
   save();
-  renderAll();
+  publish();
   tutorNote(`Demonstração: ${demo.name}. A linha de livro tem ${demo.bookPlies} meios-lances; o resto é o motor jogando dos dois lados.`);
   setTimeout(startReplay, 600);
 }

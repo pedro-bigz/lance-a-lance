@@ -5,7 +5,7 @@ import { S, botColor } from '../core/state';
 import { applyMove } from '../core/game';
 import { afterChange } from '../store/session';
 import { moveFx, reducedMotion, slideDuration } from '../board/animations';
-import { renderAll, renderPlayers } from '../game/panel';
+import { publish } from '../store/view-store';
 import { studyHold } from '../study/practice';
 import { tutorNote } from '../tutor/tutor';
 import { sleep } from '../ui/dom';
@@ -40,7 +40,7 @@ export async function maybeBot(): Promise<void> {
   if (!bc || S.over || S.game.turn() !== bc || studyHold()) return; // estudo: desvio ou fim das variantes esperam a escolha do usuário
   const token = ++S.botToken;
   S.botThinking = true;
-  renderPlayers();
+  publish('board');
   const fen = S.game.fen(),
     t0 = Date.now(),
     bot = S.bot;
@@ -69,6 +69,6 @@ export async function maybeBot(): Promise<void> {
   S.botThinking = false;
   const m = uci ? applyMove(uciObj(uci), { soundDelay: reducedMotion() ? 0 : slideDuration(uci.slice(0, 2), uci.slice(2, 4)) }) : null;
   afterChange();
-  renderAll();
+  publish();
   if (m) moveFx(S.plies[S.plies.length - 1], { slide: true });
 }

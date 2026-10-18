@@ -11,12 +11,12 @@ import { requestAnalysis } from '../engine/analysis';
 import { maybeBot } from '../engine/bot';
 import { ACCOUNT } from '../desktop/account';
 import { DESKTOP_AUTH } from '../desktop/bridge';
-import { renderAll } from '../game/panel';
 import { stopReplay } from '../game/replay';
+import { UI } from '../game/ui-state';
 import { setStudy } from '../study/panel';
 import { STUDY, devOf, studyDevEvals, studyFromSnapshot, studySync, type Practice } from '../study/practice';
 import { abortTutor } from '../tutor/tutor';
-import { $ } from '../ui/dom';
+import { publish } from './view-store';
 import { GameStore } from './game-store';
 import { isObj, isStr, lsGet, newId } from './local';
 import { restore, save, saveGame, studyStoreKey, STORE, type BoardSnapshot } from './session';
@@ -48,8 +48,7 @@ export function freshStudyBoard(): void {
   S.recResult = S.recText = null;
   S.rated = false;
   requestAnalysis(S.positions[0] as string);
-  $<HTMLDetailsElement>('#studyPickBox').open = true;
-  $<HTMLDetailsElement>('#studyExpBox').open = true;
+  STUDY.pickOpen = STUDY.expOpen = true;
   STUDY.autoClosed = false;
   try {
     localStorage.removeItem(studyStoreKey());
@@ -94,8 +93,7 @@ function loadStudyCtx(): void {
   STUDY.practice = rebuilt.practice;
   S.rated = false;
   STUDY.sel = rebuilt.practice.sel;
-  $<HTMLDetailsElement>('#studyPickBox').open = false;
-  $<HTMLDetailsElement>('#studyExpBox').open = false;
+  STUDY.pickOpen = STUDY.expOpen = false;
   STUDY.autoClosed = true;
   studySync();
   const p = STUDY.practice;
@@ -115,9 +113,8 @@ export function switchBoardCtx(ctx: BoardCtx): void {
   S.hintAt = -1;
   S.selected = null;
   S.targets = [];
-  $('#promo').hidden = true;
+  UI.promo = null;
   STUDY.expTok++;
-  STUDY.expKey = STUDY.pracKey = null;
   abortTutor(); // o tutor não continua agindo na partida do outro contexto
   CTX_MEM[BOARD_CTX] = { gameId: S.gameId, trainer: S.trainer, practice: STUDY.practice };
   save();
@@ -130,6 +127,6 @@ export function switchBoardCtx(ctx: BoardCtx): void {
     setStudy(false);
   }
   save();
-  renderAll();
+  publish();
   maybeBot();
 }

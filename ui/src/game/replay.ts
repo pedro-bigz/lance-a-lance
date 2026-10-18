@@ -1,14 +1,14 @@
 /* ---------- Reprodução e navegação pelos lances ----------
-   Reprodução da partida terminada, um lance a cada 1,5 s, e goTo (setas, lista de lances, gráfico). */
+   Reprodução da partida terminada, um lance a cada 1,5 s, e goTo (setas, lista de lances, gráfico). O botão
+   Reproduzir/Pausar é desenhado em panels.tsx a partir de replaying(). */
 import { S, viewIdx } from '../core/state';
 import type { Ply } from '../core/types';
 import { fadeCaptured, reducedMotion, slideDuration, slidePiece } from '../board/animations';
 import { rippleFx } from '../board/capture-fx';
 import { STYLE } from '../board/pieces';
 import { moveSound } from '../board/sound';
+import { publish } from '../store/view-store';
 import { playDemo } from '../tutor/training';
-import { $, $opt } from '../ui/dom';
-import { renderAll } from './panel';
 
 const REPLAY_MS = 1500;
 let replayTimer: ReturnType<typeof setInterval> | null = null;
@@ -49,23 +49,26 @@ export function startReplay(): void {
   if (!canReplay()) return;
   if (viewIdx() >= S.positions.length - 1) goTo(0, true); // terminou no último lance: recomeça do início
   replayTimer = setInterval(replayStep, REPLAY_MS);
-  renderReplayBtn();
+  publish('board');
 }
 export function stopReplay(): void {
   if (replayTimer) {
     clearInterval(replayTimer);
     replayTimer = null;
+    publish('board');
   }
-  if ($opt('#btnReplay')) renderReplayBtn();
 }
 export const replaying = (): boolean => !!replayTimer;
-export function renderReplayBtn(): void {
-  const b = $('#btnReplay');
-  b.hidden = !canReplay();
-  b.setAttribute('aria-pressed', String(!!replayTimer));
-  (b.querySelector('.ic') as HTMLElement).innerHTML = replayTimer ? '&#10074;&#10074;' : '&#9654;';
-  (b.querySelector('.tx') as HTMLElement).textContent = replayTimer ? 'Pausar' : 'Reproduzir';
-  b.title = replayTimer ? 'Pausar a reprodução' : 'Reproduzir a partida lance a lance (1,5 s por lance)';
+/** antes de redesenhar: a partida mudou e não dá mais para reproduzir → para (sem publicar de novo) */
+export function replaySync(): void {
+  if (replayTimer && !canReplay()) {
+    clearInterval(replayTimer);
+    replayTimer = null;
+  }
+}
+export function toggleReplay(): void {
+  if (replaying()) stopReplay();
+  else startReplay();
 }
 export function goTo(i: number, fromReplay?: boolean): void {
   if (!fromReplay) {
@@ -77,5 +80,5 @@ export function goTo(i: number, fromReplay?: boolean): void {
   S.view = i === n ? null : i;
   S.selected = null;
   S.targets = [];
-  renderAll();
+  publish();
 }

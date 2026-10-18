@@ -1,11 +1,11 @@
-/* Modal "Seu perfil" (ilha React sem section: abre pelo menu da conta, em qualquer tela). Campos não controlados
+/* Modal "Seu perfil" (sem section: abre pelo menu da conta, em qualquer tela; existe só depois do login). Campos não controlados
    (refs), como no painel de administração. Ao fechar, o foco volta para o avatar (#openUser). */
 import { useLayoutEffect, useRef, useState } from 'react';
 import { ACCOUNT, authError, renderAccount } from './account';
 import { DESKTOP_AUTH } from './bridge';
 import { PROFILE_OPEN, checkProfile, type ProfileField } from './profile';
-import { useStore } from './react/hooks';
-import { FormMsg, Modal, msgOf, type Msg } from './react/modal';
+import { useStore } from '../react/hooks';
+import { FormMsg, Modal, msgOf, type Msg } from '../react/modal';
 
 export function ProfileView() {
   const open = useStore(PROFILE_OPEN);

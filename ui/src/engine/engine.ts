@@ -2,6 +2,7 @@
    stockfish.asm.js fica ao lado da página (ui/public → dist). No app desktop o worker sobe do mesmo origin
    (app://lance); no artifact, se a cópia local falhar, tenta as CDNs permitidas por um Blob com importScripts. */
 import type { EngineLine, EngineResult } from '../core/types';
+import { statusView } from '../store/view-store';
 
 const SF_LOCAL = 'stockfish.asm.js';
 const SF_CDN = ['https://cdn.jsdelivr.net/npm/stockfish@10.0.2/src/stockfish.asm.js', 'https://unpkg.com/stockfish@10.0.2/src/stockfish.asm.js'];
@@ -183,3 +184,5 @@ export class Engine {
 export const engine = new Engine();
 /** motor do bot, das demonstrações e do estudo (deixa o da análise livre) */
 export const botEngine = new Engine();
+/** o texto do estado do Stockfish (engineStatusText em game/panels.tsx) mudou: fila de análise ou motor pronto */
+export const setStatus = (): void => statusView.publish();

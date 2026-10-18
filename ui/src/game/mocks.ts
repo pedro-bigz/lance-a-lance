@@ -8,10 +8,10 @@ import { GameStore } from '../store/game-store';
 import { readGames, writeGames } from '../store/local';
 import { saveGame } from '../store/session';
 import type { GameMode, GameRecord } from '../store/types';
-import { $ } from '../ui/dom';
+import { publish } from '../store/view-store';
 import { openRecord, renderHistCount, renderHistory } from './history';
-import { renderAll } from './panel';
 import { RATING, RATING_UI, writeRating } from './rating';
+import { UI } from './ui-state';
 
 interface MockDef {
   id: string;
@@ -115,19 +115,17 @@ export function loadMocks(): GameRecord[] {
     ids = new Set(mocks.map((m) => m.id));
   writeGames([...mocks, ...readGames().filter((g) => !ids.has(g.id))]);
   renderHistCount();
-  if (!$('#historyModal').hidden) renderHistory();
+  if (UI.history) renderHistory();
   return mocks;
 }
-function clearMocks(): void {
+export function clearMocks(): void {
   if (GameStore && GameStore.kind === 'api') return;
   if (GameStore) GameStore.flush();
   writeGames(readGames().filter((g) => !g.mock));
   renderHistCount();
-  if (!$('#historyModal').hidden) renderHistory();
+  if (UI.history) renderHistory();
 }
 export function initMocks(): void {
-  $('#mockLoad').onclick = loadMocks;
-  $('#mockClear').onclick = clearMocks;
   // atalho para testes no console: LanceALance.mocks.load(), await LanceALance.games(), LanceALance.store()
   window.LanceALance = {
     rating: {
@@ -137,7 +135,7 @@ export function initMocks(): void {
         Object.assign(RATING, freshRating());
         RATING_UI.shown = RATING.rating;
         writeRating(RATING);
-        renderAll();
+        publish();
       },
     },
     mocks: { load: loadMocks, clear: clearMocks, list: MOCKS },

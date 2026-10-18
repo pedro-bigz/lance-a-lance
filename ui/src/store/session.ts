@@ -11,10 +11,9 @@ import { requestAnalysis } from '../engine/analysis';
 import { ACCOUNT } from '../desktop/account';
 import { refreshIfCurrent, viewDataChanged } from '../desktop/views';
 import { renderHistCount, renderHistory, openRecord } from '../game/history';
-import { renderPlayers } from '../game/panel';
 import { RATING, RATING_UI, animateRating, applyRatingIfDone, renderRating } from '../game/rating';
+import { UI } from '../game/ui-state';
 import { studySnapshot, type StudySnapshot } from '../study/practice';
-import { $ } from '../ui/dom';
 import { boardCtx } from './contexts';
 import { LEGACY_SID, UUID_RE } from './convert';
 import { GameStore, type SaveResponse } from './game-store';
@@ -90,10 +89,9 @@ export function restore(key = STORE): boolean {
   if (!d) return false;
   S.bot = S.pickBot = findBot(d.bot) || S.bot;
   S.depth = d.depth && DEPTH[d.depth] ? d.depth : 'normal';
-  $<HTMLSelectElement>('#depthSel').value = S.depth;
   S.player = d.player === 'b' ? 'b' : 'w';
   S.gameMode = d.gameMode === 'normal' ? 'normal' : 'assistido';
-  for (const x of $('#colorSeg').children) x.setAttribute('aria-pressed', String((x as HTMLElement).dataset.v === S.player));
+  UI.color = S.player; // "Suas peças" da nova partida volta à cor da partida guardada
   if (!d.start || !Array.isArray(d.moves)) return false;
   try {
     S.mode = d.mode === 'review' ? 'review' : 'play';
@@ -240,7 +238,7 @@ export function afterChange(): void {
 const ANIM_KEY = () => `lance-a-lance:pontuacao-animada:u${ACCOUNT.user ? ACCOUNT.user.id : 0}`;
 export function onGameSaved(rec: SaveRecord, resp: SaveResponse, created: boolean): void {
   if (created) renderHistCount();
-  if (!$('#historyModal').hidden) renderHistory();
+  if (UI.history) renderHistory();
   viewDataChanged(created || !!(resp && resp.game && resp.game.status === 'concluida'));
   if (!resp || !resp.game || resp.game.status !== 'concluida') return;
   const ch = resp.rating_change,
@@ -253,7 +251,6 @@ export function onGameSaved(rec: SaveRecord, resp: SaveResponse, created: boolea
   } else if (resp.rating != null && resp.rating !== RATING.rating) {
     RATING.rating = RATING_UI.shown = resp.rating;
     renderRating();
-    renderPlayers();
   }
   refreshIfCurrent('estatisticas');
 }

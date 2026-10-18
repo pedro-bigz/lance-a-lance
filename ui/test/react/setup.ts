@@ -1,5 +1,5 @@
-// Ambiente dos testes de componente (jsdom): #appRoot para os portais dos modais, os elementos de fora das ilhas, matchMedia (usado pela sidebar no
-// carregamento) e limpeza entre os testes.
+// Ambiente dos testes de componente (jsdom): #appRoot para os portais dos modais, matchMedia (sidebar e estudo no
+// carregamento), Web Animations, scrollIntoView e scrollTo (o jsdom não tem) e limpeza entre os testes.
 import { cleanup } from '@testing-library/react';
 import { afterEach } from 'vitest';
 
@@ -14,6 +14,14 @@ if (!window.matchMedia)
     removeListener() {},
     dispatchEvent: () => false,
   })) as unknown as typeof window.matchMedia;
+// animações do tabuleiro: terminam na hora
+if (!Element.prototype.animate)
+  Element.prototype.animate = function () {
+    return { finished: Promise.resolve(), cancel() {}, playState: 'finished' } as unknown as Animation;
+  };
+if (!document.getAnimations) document.getAnimations = () => [];
+if (!Element.prototype.scrollIntoView) Element.prototype.scrollIntoView = function () {};
+window.scrollTo = () => {}; // o jsdom avisa "Not implemented"
 
 export function appRoot(): HTMLElement {
   let root = document.getElementById('appRoot');
@@ -21,14 +29,6 @@ export function appRoot(): HTMLElement {
     root = document.createElement('div');
     root.id = 'appRoot';
     document.body.appendChild(root);
-    // partes da página fora das ilhas que elas atualizam: contador do histórico do tabuleiro (renderHistCount),
-    // rating do topo (renderRating) e a conta na sidebar (renderAccount, depois de salvar o perfil)
-    const rest = document.createElement('div');
-    rest.innerHTML =
-      '<span id="histCount"></span><b id="ratingVal"></b><nav id="sideNav"></nav>' +
-      '<div id="userWrap" hidden><button id="openUser"><span id="userInitials"></span><b id="sideUserName"></b><small id="sideUserRole"></small></button>' +
-      '<span id="userInitialsBig"></span><b id="userName"></b><small id="userEmail"></small><a id="openAdmin" hidden></a></div>';
-    document.body.appendChild(rest);
   }
   return root;
 }

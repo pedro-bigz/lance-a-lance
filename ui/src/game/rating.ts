@@ -1,16 +1,15 @@
 /* ---------- Rating do jogador (Elo; no artifact salvo neste navegador, no desktop na API) ----------
    No app desktop a pontuação vem da API (player_stats) e é calculada pelo servidor quando a partida termina;
-   aqui fica só o valor exibido. No artifact continua neste navegador (localStorage). Regras em core/rating.ts. */
+   aqui fica só o valor exibido. No artifact continua neste navegador (localStorage). Regras em core/rating.ts.
+   O número do topo (RATING_UI.shown) é desenhado pelo TopBar; a animação de +/− é imperativa sobre a pílula. */
 import { S, botColor } from '../core/state';
 import { resultOf } from '../core/result';
-import { applyScore, freshRating, parseRating, ratingScore, recommendBot, type RatingApplied, type RatingRecord } from '../core/rating';
+import { applyScore, freshRating, parseRating, ratingScore, type RatingApplied, type RatingRecord } from '../core/rating';
 import { reducedMotion } from '../board/animations';
 import { API_GAMES, DESKTOP_STATS } from '../desktop/bridge';
 import { RATING_KEY } from '../store/local';
-import { $ } from '../ui/dom';
-import { esc } from '../ui/escape';
+import { publish } from '../store/view-store';
 import { fmtDelta } from '../ui/format';
-import { renderPlayers } from './panel';
 
 function readRating(): RatingRecord {
   try {
@@ -42,12 +41,11 @@ export function applyRatingIfDone(): void {
   setTimeout(() => animateRating(before, RATING.rating), S.game.in_checkmate() ? 1700 : 400);
 }
 export function animateRating(from: number, to: number): void {
-  const pill = $('#ratingPill'),
+  const pill = document.getElementById('ratingPill'),
     delta = to - from;
-  if (!delta || reducedMotion()) {
+  if (!delta || reducedMotion() || !pill) {
     RATING_UI.shown = to;
     renderRating();
-    renderPlayers();
     return;
   }
   const f = document.createElement('span');
@@ -74,9 +72,8 @@ export function animateRating(from: number, to: number): void {
     if (k < 1) setTimeout(step, 30);
     else {
       RATING_UI.shown = to;
-      renderRating();
       pill.classList.remove('flash-up', 'flash-down');
-      renderPlayers();
+      renderRating();
     }
   };
   setTimeout(step, 30);
@@ -84,16 +81,13 @@ export function animateRating(from: number, to: number): void {
 export function ratingInfo(id: string | null): RatingApplied | null {
   return id && RATING.applied[id] ? RATING.applied[id] : null;
 }
+/** o número do topo e o dos jogadores mudaram */
 export function renderRating(): void {
-  $('#ratingVal').textContent = String(RATING_UI.shown);
+  publish('board');
 }
+/** a nota da nova partida (rating e bot recomendado) é desenhada pelo TopBar a partir de RATING e S.gameMode */
 export function renderRecNote(): void {
-  const rec = recommendBot(RATING.rating);
-  const modeTxt =
-    S.gameMode === 'normal'
-      ? 'A partida vale rating (modo normal).'
-      : '<span class="warn">Modo assistido: esta partida não vale rating.</span> Para valer, troque para o modo normal no menu ⋮.';
-  $('#recNote').innerHTML = `Seu rating: <b>${RATING.rating}</b>. Recomendado: <b>${esc(rec.level)}</b> (≈${rec.elo}). ${modeTxt}`;
+  publish('board');
 }
 // pontuação do jogador vinda de player_stats (desktop)
 export async function loadServerRating(): Promise<void> {
@@ -105,6 +99,4 @@ export async function loadServerRating(): Promise<void> {
   RATING.losses = r.stats.losses;
   RATING.draws = r.stats.draws;
   renderRating();
-  renderPlayers();
-  renderRecNote();
 }

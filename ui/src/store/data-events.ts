@@ -1,9 +1,9 @@
 /* ---------- "Dados mudaram": tópicos com contador de versão ----------
    Um EventTarget mínimo, sem biblioteca de estado. Quem muda dados chama emit(tópico); quem mostra os dados assina com
-   subscribe (ou, nas ilhas React, com useDataVersion, que lê version() pelo useSyncExternalStore).
+   subscribe (ou, nos componentes, com useDataVersion, que lê version() pelo useSyncExternalStore).
    Tópicos usados hoje (veja desktop/views.ts):
      'tela:<view>'   a tela <view> foi aberta (onShow) ou uma gravação mudou o que ela mostra (viewDataChanged):
-                     a ilha da tela recarrega os dados. A versão 0 quer dizer "ainda não foi aberta".
+                     o componente da tela recarrega os dados. A versão 0 quer dizer "ainda não foi aberta".
    createStore guarda um valor simples (ex.: modal de perfil aberto ou não) com a mesma inscrição. */
 
 const bus = new EventTarget();

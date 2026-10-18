@@ -1,5 +1,6 @@
 /* ---------- Partida ----------
-   Funções que mudam a partida aberta no tabuleiro (S): começar, jogar um lance, voltar, carregar PGN. */
+   Funções que mudam a partida aberta no tabuleiro (S): começar, jogar um lance, voltar, carregar PGN. Depois de
+   mudar, publish() redesenha a tela (store/view-store.ts). */
 import { Chess, type ShortMove } from 'chess.js';
 import { API_GAMES } from '../desktop/bridge';
 import { bookLength } from '../book/index';
@@ -8,12 +9,12 @@ import { moveSound } from '../board/sound';
 import { requestAnalysis } from '../engine/analysis';
 import { maybeBot } from '../engine/bot';
 import { setDrawer } from '../game/menus';
-import { renderAll } from '../game/panel';
 import { stopReplay } from '../game/replay';
+import { UI } from '../game/ui-state';
 import { newId } from '../store/local';
 import { afterChange, save, saveGame } from '../store/session';
+import { publish } from '../store/view-store';
 import { studyOnUserMove } from '../study/practice';
-import { $ } from '../ui/dom';
 import { BOOK_CLS } from './classify';
 import { resultOf } from './result';
 import { S, botColor, type Trainer } from './state';
@@ -40,7 +41,7 @@ export function startGame(trainer?: Trainer | null): void {
   S.headers = {};
   S.trainer = trainer || null;
   S.demoQueue = [];
-  const c = $('#colorSeg [aria-pressed="true"]').dataset.v;
+  const c = UI.color;
   S.player = c === 'r' ? (Math.random() < 0.5 ? 'w' : 'b') : c === 'b' ? 'b' : 'w';
   S.bot = S.pickBot;
   S.orient = S.player;
@@ -52,7 +53,7 @@ export function startGame(trainer?: Trainer | null): void {
   S.rated = !S.trainer && S.gameMode === 'normal' && S.bot.id !== 'none'; // treino com o tutor não vale rating
   requestAnalysis(S.positions[0] as string);
   save();
-  renderAll();
+  publish();
   maybeBot();
 }
 export function applyMove(mv: string | ShortMove, { silent, soundDelay }: { silent?: boolean; soundDelay?: number } = {}) {
@@ -94,7 +95,7 @@ export function userMove(from: string, to: string, promotion?: string): void {
   if (!applyMove({ from, to, promotion })) return;
   studyOnUserMove(); // estudo de aberturas: confere o lance com as variantes antes de o bot responder
   afterChange();
-  renderAll();
+  publish();
   maybeBot();
   moveFx(S.plies[S.plies.length - 1], { slide: false });
 }
@@ -122,16 +123,15 @@ export function undo(): void {
   S.targets = [];
   checkOver();
   afterChange();
-  renderAll();
+  publish();
   maybeBot();
 }
 export function loadPgn(text: string): void {
-  const err = $('#pgnErr');
-  err.hidden = true;
+  UI.pgnErr = '';
   const c = new Chess();
   if (!text.trim() || !c.load_pgn(text, { sloppy: true })) {
-    err.textContent = 'Não consegui ler esse PGN. Confira se os lances estão em notação padrão (ex.: 1. e4 e5 2. Nf3).';
-    err.hidden = false;
+    UI.pgnErr = 'Não consegui ler esse PGN. Confira se os lances estão em notação padrão (ex.: 1. e4 e5 2. Nf3).';
+    publish('board');
     return;
   }
   const h = c.header();
@@ -150,5 +150,5 @@ export function loadPgn(text: string): void {
   setDrawer(null);
   save();
   saveGame();
-  renderAll();
+  publish();
 }

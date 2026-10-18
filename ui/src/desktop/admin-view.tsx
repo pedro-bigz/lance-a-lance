@@ -1,4 +1,4 @@
-/* ---------- Painel de administração (view admin): ilha React ----------
+/* ---------- Painel de administração (view admin): componente ----------
    Tabela de usuários com busca e paginação, ativar/desativar, bloquear, modal de novo usuário / editar usuário e o
    diálogo de exclusão. Ao abrir a tela carrega os papéis (uma vez) e a página atual de usuários.
    Os campos dos formulários não são controlados pelo React (refs, como os outros formulários da página): o valor fica
@@ -20,8 +20,8 @@ import {
   type AdminField,
 } from './admin';
 import { DESKTOP_ADMIN } from './bridge';
-import { useLatest, useViewRefresh } from './react/hooks';
-import { FormMsg, Modal, msgOf, type Msg } from './react/modal';
+import { useLatest, useViewRefresh } from '../react/hooks';
+import { FormMsg, Modal, msgOf, type Msg } from '../react/modal';
 
 const LIMIT = 20;
 type Rows = 'loading' | 'error' | 'ok';

@@ -2,8 +2,8 @@
 // Cada efeito recebe um contexto: a casa (host), o lado da casa em px, as casas vizinhas com a distância
 // e o elemento que pode tremer. Assim o mesmo efeito roda no tabuleiro e na prévia do painel de estilo.
 import type { Color } from 'chess.js';
+import { REFS } from '../game/ui-state';
 import { STYLE } from './pieces';
-import { boardEl, squaresEl } from './render';
 
 export interface FxCtx {
   host: HTMLElement;
@@ -187,8 +187,10 @@ export const CAPTURE_FX: Record<string, (ctx: FxCtx) => void> = {
   },
 };
 function boardFxCtx(sq: string, capturedColor: Color): FxCtx | null {
-  const host = squaresEl.querySelector<HTMLElement>(`[data-sq="${sq}"]`);
-  if (!host) return null;
+  const squaresEl = REFS.squares,
+    boardEl = REFS.board;
+  const host = squaresEl && squaresEl.querySelector<HTMLElement>(`[data-sq="${sq}"]`);
+  if (!host || !squaresEl || !boardEl) return null;
   const f0 = 'abcdefgh'.indexOf(sq[0] as string),
     r0 = +(sq[1] as string);
   const neighbors = [...squaresEl.querySelectorAll<HTMLElement>('.sq')].map((el) => {

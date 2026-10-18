@@ -1,7 +1,7 @@
 /* ---------- Estatísticas (view estatisticas, só no app desktop): dados e gráfico ----------
    Cartões com os totais, a tabela de lances por classificação (só os lances do próprio jogador) e o gráfico da
    pontuação em SVG próprio (sem bibliotecas: o app funciona offline). Os dados vêm de /v1/stats/me e
-   /v1/stats/me/rating-history. Aqui ficam as contas (puras); o desenho é a ilha React de stats-view.tsx. */
+   /v1/stats/me/rating-history. Aqui ficam as contas (puras); o desenho é o componente de stats-view.tsx. */
 import { CLS, CLS_KEYS, type ClsKey } from '../core/constants';
 import type { PlayerStats, RatingHistoryData } from '../types/api';
 import { fmtDelta, fmtNum, pct } from '../ui/format';

@@ -1,73 +1,47 @@
 /* ---------- Interações do Tabuleiro ----------
-   Navegação pelos lances, teclado, modo de jogo, nova partida, PGN (colar, arquivo, arrastar, copiar) e escolha do bot. */
+   Navegação pelos lances, teclado, modo de jogo, nova partida, PGN (colar, arquivo, arrastar, copiar) e escolha do bot.
+   Os botões ficam nos componentes (panels.tsx, top-bar.tsx, game-view.tsx); aqui ficam as ações e os atalhos do
+   document, registrados em main.tsx na ordem de sempre. */
 import { Chess } from 'chess.js';
-import { BOTS, CLS, CLS_KEYS, SAMPLE_PGN, uciObj, type DepthKey } from '../core/constants';
+import { BOTS, SAMPLE_PGN, uciObj, type DepthKey } from '../core/constants';
 import { afterChange, save, saveGame } from '../store/session';
 import { checkOver, loadPgn, startGame, undo } from '../core/game';
-import { recommendBot } from '../core/rating';
 import { S, botColor, viewIdx } from '../core/state';
-import { badgeHtml, renderBoard } from '../board/render';
 import { requestAnalysis } from '../engine/analysis';
 import { boardCtx } from '../store/contexts';
+import { publish } from '../store/view-store';
 import { goView } from '../desktop/views';
-import { $, target } from '../ui/dom';
 import { setDrawer } from './menus';
-import { renderAll } from './panel';
-import { RATING, renderRecNote } from './rating';
-import { goTo, replaying, startReplay, stopReplay } from './replay';
+import { renderRecNote } from './rating';
+import { goTo } from './replay';
+import { REFS, UI } from './ui-state';
 
 /** app desktop ainda sem login: atalhos e arrastar arquivo ficam desligados */
 export const locked = (): boolean => document.documentElement.classList.contains('needs-auth');
 
-// o modo vale na hora, inclusive para a partida em andamento
-export function renderModeSeg(): void {
-  const sel = $<HTMLSelectElement>('#modeSel');
-  sel.value = S.gameMode;
-  sel.disabled = S.mode === 'review';
-  sel.title = S.mode === 'review' ? 'Partidas importadas por PGN são sempre avaliadas' : '';
-}
-export function renderBots(): void {
-  const rec = recommendBot(RATING.rating);
-  $('#bots').innerHTML = BOTS.map(
-    (b) =>
-      `<button class="bot${b.id === 'none' ? ' bot-none' : ''}${b.id === rec.id ? ' recommended' : ''}" data-id="${b.id}" aria-pressed="${b.id === S.pickBot.id}"><b>${b.level}</b><span>${b.elo ? '≈' + b.elo + ' · ' : ''}${b.desc}</span>${b.id === rec.id ? '<em class="rec">Recomendado</em>' : ''}</button>`,
-  ).join('');
-}
 function readPgnFile(file: File | undefined): void {
   if (!file) return;
   const r = new FileReader();
   r.onload = () => {
     const text = String(r.result || '');
-    $<HTMLTextAreaElement>('#pgnIn').value = text;
+    if (REFS.pgnIn) REFS.pgnIn.value = text;
     loadPgn(text);
   };
   r.readAsText(file);
 }
 
+export function flipBoard(): void {
+  S.orient = S.orient === 'w' ? 'b' : 'w';
+  publish();
+}
+export const undoClick = (): void => undo();
+export function hintClick(): void {
+  S.hintAt = viewIdx();
+  requestAnalysis(S.positions[S.hintAt] as string);
+  publish('board');
+}
 // setas, lista de lances, gráfico e atalhos de teclado
 export function initNav(): void {
-  $('#navFirst').onclick = () => goTo(0);
-  $('#navPrev').onclick = () => goTo(viewIdx() - 1);
-  $('#navNext').onclick = () => goTo(viewIdx() + 1);
-  $('#navLast').onclick = () => goTo(S.positions.length - 1);
-  $('#btnFlip').onclick = () => {
-    S.orient = S.orient === 'w' ? 'b' : 'w';
-    renderAll();
-  };
-  $('#btnUndo').onclick = undo;
-  $('#btnHint').onclick = () => {
-    S.hintAt = viewIdx();
-    requestAnalysis(S.positions[S.hintAt] as string);
-    renderBoard();
-  };
-  $('#moveList').onclick = (e) => {
-    const b = target(e).closest<HTMLElement>('.mv[data-i]');
-    if (b) goTo(+(b.dataset.i as string));
-  };
-  $('#graph').onclick = (e) => {
-    const r = (e.currentTarget as Element).getBoundingClientRect();
-    goTo(Math.round(((e.clientX - r.left) / r.width) * (S.positions.length - 1)));
-  };
   document.addEventListener('keydown', (e) => {
     if (locked()) return;
     const t = e.target as Element | null;
@@ -87,43 +61,85 @@ export function initNav(): void {
   });
 }
 
-export function initGameControls(): void {
-  $<HTMLSelectElement>('#modeSel').onchange = (e) => {
-    S.gameMode = (e.target as HTMLSelectElement).value === 'normal' ? 'normal' : 'assistido';
-    if (S.mode === 'play' && !S.over) {
-      if (S.gameMode === 'assistido') S.rated = false;
-      else if (!S.plies.length && botColor() && !S.trainer) S.rated = true; // treino e estudo nunca valem rating
+// o modo vale na hora, inclusive para a partida em andamento
+export function setGameMode(v: string): void {
+  S.gameMode = v === 'normal' ? 'normal' : 'assistido';
+  if (S.mode === 'play' && !S.over) {
+    if (S.gameMode === 'assistido') S.rated = false;
+    else if (!S.plies.length && botColor() && !S.trainer) S.rated = true; // treino e estudo nunca valem rating
+  }
+  renderRecNote();
+  save();
+  if (S.mode === 'play' && S.plies.length && !S.over) saveGame(); // o modo (e se vale rating) vai junto para o histórico
+  publish();
+}
+export function finishGame(): void {
+  if (!S.plies.length) return;
+  S.botToken++;
+  S.botThinking = false;
+  S.ended = true;
+  checkOver();
+  S.view = null;
+  afterChange();
+  publish();
+}
+// nova partida e PGN são do Tabuleiro: no estudo, voltam para a partida do Tabuleiro antes
+export function startClick(): void {
+  setDrawer(null);
+  if (boardCtx() !== 'jogo') goView('jogo');
+  startGame();
+}
+export function analyzePgn(): void {
+  if (boardCtx() !== 'jogo') goView('jogo');
+  loadPgn(REFS.pgnIn ? REFS.pgnIn.value : '');
+}
+export function pgnFileChosen(input: HTMLInputElement): void {
+  readPgnFile(input.files ? input.files[0] : undefined);
+  input.value = '';
+}
+export function loadSample(): void {
+  if (REFS.pgnIn) REFS.pgnIn.value = SAMPLE_PGN;
+  loadPgn(SAMPLE_PGN);
+}
+let copyTimer: ReturnType<typeof setTimeout> | 0 = 0;
+export async function copyPgn(): Promise<void> {
+  const c = new Chess(S.positions[0]);
+  for (const p of S.plies) c.move(uciObj(p.uci));
+  const pgn = c.pgn({ max_width: 80 });
+  try {
+    await navigator.clipboard.writeText(pgn);
+    UI.copyLabel = 'PGN copiado';
+    publish('board');
+  } catch (_) {
+    setDrawer('pgnBox');
+    UI.copyLabel = 'Selecione e copie';
+    publish('board');
+    const t = REFS.pgnIn;
+    if (t) {
+      t.value = pgn;
+      t.select();
     }
-    renderRecNote();
-    save();
-    if (S.mode === 'play' && S.plies.length && !S.over) saveGame(); // o modo (e se vale rating) vai junto para o histórico
-    renderAll();
-  };
-  $('#btnFinish').onclick = () => {
-    if (!S.plies.length) return;
-    S.botToken++;
-    S.botThinking = false;
-    S.ended = true;
-    checkOver();
-    S.view = null;
-    afterChange();
-    renderAll();
-  };
-  // nova partida e PGN são do Tabuleiro: no estudo, voltam para a partida do Tabuleiro antes
-  $('#btnStart').onclick = () => {
-    setDrawer(null);
-    if (boardCtx() !== 'jogo') goView('jogo');
-    startGame();
-  };
-  $('#btnPgn').onclick = () => {
-    if (boardCtx() !== 'jogo') goView('jogo');
-    loadPgn($<HTMLTextAreaElement>('#pgnIn').value);
-  };
-  $<HTMLInputElement>('#pgnFile').onchange = (e) => {
-    const input = e.target as HTMLInputElement;
-    readPgnFile(input.files ? input.files[0] : undefined);
-    input.value = '';
-  };
+  }
+  clearTimeout(copyTimer);
+  copyTimer = setTimeout(() => {
+    UI.copyLabel = 'Copiar PGN';
+    publish('board');
+  }, 1800);
+}
+export function pickColor(v: 'w' | 'b' | 'r'): void {
+  UI.color = v;
+  publish('board');
+}
+export function setDepth(v: string): void {
+  S.depth = v as DepthKey;
+  save();
+  publish('board');
+}
+export function pickBot(id: string): void {
+  S.pickBot = BOTS.find((x) => x.id === id)!;
+  publish('board');
+}
+export function initGameControls(): void {
   document.addEventListener('dragover', (e) => {
     if (e.dataTransfer && [...e.dataTransfer.types].includes('Files')) e.preventDefault();
   });
@@ -134,52 +150,4 @@ export function initGameControls(): void {
       if (!locked()) readPgnFile(f);
     }
   });
-  $('#btnSample').onclick = () => {
-    $<HTMLTextAreaElement>('#pgnIn').value = SAMPLE_PGN;
-    loadPgn(SAMPLE_PGN);
-  };
-  $('#btnCopy').onclick = async (e) => {
-    const c = new Chess(S.positions[0]);
-    for (const p of S.plies) c.move(uciObj(p.uci));
-    const pgn = c.pgn({ max_width: 80 });
-    const btn = e.currentTarget as HTMLElement;
-    try {
-      await navigator.clipboard.writeText(pgn);
-      btn.textContent = 'PGN copiado';
-    } catch (_) {
-      setDrawer('pgnBox');
-      const t = $<HTMLTextAreaElement>('#pgnIn');
-      t.value = pgn;
-      t.select();
-      btn.textContent = 'Selecione e copie';
-    }
-    setTimeout(() => {
-      btn.textContent = 'Copiar PGN';
-    }, 1800);
-  };
-  $('#colorSeg').onclick = (e) => {
-    const b = target(e).closest('button');
-    if (!b) return;
-    for (const x of $('#colorSeg').children) x.setAttribute('aria-pressed', String(x === b));
-  };
-  $<HTMLSelectElement>('#depthSel').onchange = (e) => {
-    S.depth = (e.target as HTMLSelectElement).value as DepthKey;
-    save();
-  };
-  $('#bots').onclick = (e) => {
-    const b = target(e).closest<HTMLElement>('.bot');
-    if (!b) return;
-    S.pickBot = BOTS.find((x) => x.id === b.dataset.id)!;
-    renderBots();
-  };
-  $('#legend').innerHTML = CLS_KEYS.map(
-    (k) => `<div>${badgeHtml(k, 'mini')}<span><b>${CLS[k].label}</b><small>${CLS[k].desc}</small></span></div>`,
-  ).join('');
-}
-
-export function initReplayButton(): void {
-  $('#btnReplay').onclick = () => {
-    if (replaying()) stopReplay();
-    else startReplay();
-  };
 }

@@ -1,7 +1,7 @@
 /* ---------- Histórico (view historico): estado e busca ----------
    Mesmos itens e mesma abertura do modal (histItemView, openGameById). A situação (em andamento/concluída) é
    filtrada na API; o resultado, nas partidas já carregadas (a API não filtra por resultado), buscando mais páginas
-   enquanto faltar partida para completar a tela. O estado fica num store pequeno (createHistPager) que a ilha React
+   enquanto faltar partida para completar a tela. O estado fica num store pequeno (createHistPager) que o componente
    de history-page-view.tsx lê com useSyncExternalStore. */
 import type { GameStoreApi } from '../store/game-store';
 import type { GameRecord } from '../store/types';
