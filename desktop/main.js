@@ -301,6 +301,8 @@ function registerGames() {
   handle('games:update', (id, p) => apiId(id) ? withBody(`/v1/games/${apiId(id)}`, 'PATCH', p) : { bad: 'Partida inválida.' });
   handle('games:get', (id) => apiId(id) ? { route: `/v1/games/${apiId(id)}`, init: { method: 'GET' } } : { bad: 'Partida inválida.' });
   handle('games:delete', (id) => apiId(id) ? { route: `/v1/games/${apiId(id)}`, init: { method: 'DELETE' } } : { bad: 'Partida inválida.' });
+  // pontuação da partida calculada pelo Stockfish na API (a página pergunta até sair de 'pending')
+  handle('games:rating', (id) => apiId(id) ? { route: `/v1/games/${apiId(id)}/rating`, init: { method: 'GET' } } : { bad: 'Partida inválida.' });
   handle('games:list', (p) => ({ route: '/v1/games' + queryString(p, { status: /^(em_andamento|concluida|abandonada)$/, limit: /^\d{1,3}$/, offset: /^\d{1,9}$/, user_id: UUID_RE }), init: { method: 'GET' } }));
   handle('stats:me', (p) => ({ route: '/v1/stats/me' + queryString(p, { user_id: UUID_RE }), init: { method: 'GET' } }));
   handle('stats:rating-history', (p) => ({ route: '/v1/stats/me/rating-history' + queryString(p, { from: DATE_RE, to: DATE_RE, group: /^(day|week|month)$/, tz: /^-?\d{1,3}$/, user_id: UUID_RE }), init: { method: 'GET' } }));

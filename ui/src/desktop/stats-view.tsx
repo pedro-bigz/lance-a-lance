@@ -25,6 +25,7 @@ import {
   type StatsRange,
 } from './stats';
 import { currentView } from './views';
+import { RATING_RULE } from '../core/rating';
 
 type ChartState = { kind: 'error'; text: string } | { kind: 'data'; hist: ChartHist } | null;
 
@@ -126,6 +127,7 @@ export function RatingChart({ hist, width, now }: { hist: ChartHist; width: numb
               ) : tip.what.kind === 'partida' ? (
                 <>
                   {tip.what.reason} · <span className={tip.what.cls}>{tip.what.delta}</span>
+                  {tip.what.acc ? ` · ${tip.what.acc}` : null}
                 </>
               ) : (
                 <>
@@ -238,6 +240,9 @@ export function StatsView() {
           </div>
         ))}
       </div>
+      <p className="rating-rule" id="ratingRule">
+        {RATING_RULE}
+      </p>
       <div className="card rchart-card">
         <div className="card-h rchart-h">
           <div>

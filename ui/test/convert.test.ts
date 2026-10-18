@@ -144,7 +144,21 @@ describe('fromApi', () => {
       resultText: 'Desistência',
       rated: true,
       ratingDelta: -10,
+      ratingStatus: null,
+      accuracy: null,
       opening: 'Defesa Siciliana',
+    });
+  });
+  it('pontuação pelo Stockfish do servidor: estado e precisão', () => {
+    expect(fromApi({ ...game, rating_status: 'pending', rating_delta: null })).toMatchObject({
+      ratingStatus: 'pending',
+      ratingDelta: null,
+      accuracy: null,
+    });
+    expect(fromApi({ ...game, rating_status: 'applied', rating_delta: -6, player_accuracy: 81.5 })).toMatchObject({
+      ratingStatus: 'applied',
+      ratingDelta: -6,
+      accuracy: 81.5,
     });
   });
   it('item resumido da listagem e partida sem client_ref', () => {

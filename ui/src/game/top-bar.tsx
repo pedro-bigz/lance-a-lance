@@ -1,7 +1,7 @@
 // Topo da página: botão da gaveta (desktop estreito), marca, Aberturas, Tutor IA, rating, "Nova partida" (dropdown
 // com nível do bot, cor e profundidade) e o menu ⋮ (modo de jogo e PGN). Controles só do jogo têm a classe game-only.
 import { BOTS } from '../core/constants';
-import { recommendBot } from '../core/rating';
+import { RATING_RULE, recommendBot } from '../core/rating';
 import { S } from '../core/state';
 import { SIDEBAR, toggleSide } from '../desktop/sidebar';
 import { useGameView, useShellView } from '../react/hooks';
@@ -179,8 +179,13 @@ export function TopBar() {
           </svg>
           Tutor IA
         </button>
-        <span className="rating-pill game-only" id="ratingPill" title="Seu rating. Só partidas contra bot no modo normal alteram o rating.">
-          Rating <b id="ratingVal">{RATING_UI.shown}</b>
+        <span
+          className={'rating-pill game-only' + (RATING_UI.pending ? ' calculating' : '')}
+          id="ratingPill"
+          title={`Seu rating. Só partidas contra bot no modo normal alteram o rating. ${RATING_RULE}`}
+          aria-live="polite"
+        >
+          Rating <b id="ratingVal">{RATING_UI.pending ? 'Calculando a pontuação…' : RATING_UI.shown}</b>
         </span>
         <NewGamePop />
         <MenuPop />

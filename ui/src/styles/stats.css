@@ -1,6 +1,7 @@
 /* Estatísticas (view estatisticas): cartões, gráfico da pontuação em SVG e tabela de lances */
 .stats{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
 .stat-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.rating-rule{margin:-4px 2px 0;font-size:12.5px;color:var(--muted);line-height:1.45}
 .stat-card{display:flex;flex-direction:column;gap:4px;padding:14px 16px}
 .stat-card .lab{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:6px}
 .stat-card .lab i{width:9px;height:9px;border-radius:3px;background:var(--st,var(--muted))}

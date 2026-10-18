@@ -11,12 +11,13 @@ import { requestAnalysis } from '../engine/analysis';
 import { ACCOUNT } from '../desktop/account';
 import { refreshIfCurrent, viewDataChanged } from '../desktop/views';
 import { renderHistCount, renderHistory, openRecord } from '../game/history';
-import { RATING, RATING_UI, animateRating, applyRatingIfDone, renderRating } from '../game/rating';
+import { RATING, RATING_UI, animateRating, applyRatingIfDone, rememberServerRating, renderRating, setRatingPending } from '../game/rating';
 import { UI } from '../game/ui-state';
 import { studySnapshot, type StudySnapshot } from '../study/practice';
 import { boardCtx } from './contexts';
 import { LEGACY_SID, UUID_RE } from './convert';
 import { GameStore, type SaveResponse } from './game-store';
+import type { RatingChange } from '../types/api';
 import { arrayOf, isStr, lsGet, lsSet, newId } from './local';
 import type { BoardMode, GameMode, SaveRecord } from './types';
 
@@ -243,16 +244,62 @@ export function onGameSaved(rec: SaveRecord, resp: SaveResponse, created: boolea
   if (!resp || !resp.game || resp.game.status !== 'concluida') return;
   const ch = resp.rating_change,
     seen = lsGet<string[]>(ANIM_KEY(), [], arrayOf(isStr));
-  if (ch && !seen.includes(rec.id)) {
-    lsSet(ANIM_KEY(), [...seen, rec.id].slice(-50));
-    RATING.rating = resp.rating;
-    // espera a animação de fim de jogo antes de mexer no número do topo
-    setTimeout(() => animateRating(ch.before, ch.after), rec.id === S.gameId && S.game.in_checkmate() ? 1700 : 400);
-  } else if (resp.rating != null && resp.rating !== RATING.rating) {
+  if (ch && ch.status === 'pending') {
+    // a API está calculando a pontuação com o Stockfish: "Calculando…" no topo e pergunta até sair o valor
+    if (!seen.includes(rec.id)) followServerRating(rec.id, rec.id === S.gameId && S.game.in_checkmate() ? 1700 : 400);
+  } else if (ch && ch.status !== 'failed' && !seen.includes(rec.id)) {
+    markSeen(rec.id);
+    showServerRating(rec.id, ch, resp.rating, rec.id === S.gameId && S.game.in_checkmate() ? 1700 : 400);
+  } else if (resp.rating != null && resp.rating !== RATING.rating && RATING_UI.pending !== rec.id) {
     RATING.rating = RATING_UI.shown = resp.rating;
     renderRating();
   }
   refreshIfCurrent('estatisticas');
+}
+function markSeen(id: string): void {
+  const seen = lsGet<string[]>(ANIM_KEY(), [], arrayOf(isStr));
+  if (!seen.includes(id)) lsSet(ANIM_KEY(), [...seen, id].slice(-50));
+}
+/** pontuação real de uma partida: guarda (fim de jogo, histórico) e anima o topo de before até after */
+function showServerRating(id: string, ch: RatingChange, rating: number | null, wait: number): void {
+  rememberServerRating(id, { delta: ch.delta, before: ch.before, after: ch.after, accuracy: ch.accuracy ?? null });
+  if (rating != null) RATING.rating = rating;
+  if (RATING_UI.pending === id) RATING_UI.pending = null;
+  // espera a animação de fim de jogo antes de mexer no número do topo
+  setTimeout(() => animateRating(ch.before, ch.after), wait);
+}
+/** intervalo e limite das perguntas pela pontuação (a análise de uma partida típica leva poucos segundos) */
+export const RATING_POLL_MS = 1500,
+  RATING_POLL_MAX = 80;
+const following = new Set<string>();
+export function followServerRating(id: string, wait = 400): void {
+  if (following.has(id) || !GameStore || !GameStore.rating) return;
+  following.add(id);
+  setRatingPending(id);
+  if (UI.history) renderHistory();
+  let tries = 0;
+  const done = () => {
+    following.delete(id);
+    if (RATING_UI.pending === id) setRatingPending(null);
+    viewDataChanged(true);
+    if (UI.history) renderHistory();
+    refreshIfCurrent('estatisticas');
+  };
+  const ask = async () => {
+    const r = GameStore && GameStore.rating ? await GameStore.rating(id).catch(() => null) : null;
+    const ch = r && r.rating_change;
+    if (ch && ch.status === 'applied') {
+      markSeen(id);
+      showServerRating(id, ch, r!.rating, tries ? 0 : wait);
+      done();
+    } else if ((ch && ch.status === 'failed') || ++tries >= RATING_POLL_MAX) {
+      // não deu para calcular agora: o topo volta ao número que a API tem (a pontuação sai quando a API conseguir)
+      if (ch && ch.status === 'failed') markSeen(id);
+      if (r && r.rating != null) RATING.rating = RATING_UI.shown = r.rating;
+      done();
+    } else setTimeout(ask, RATING_POLL_MS);
+  };
+  setTimeout(ask, RATING_POLL_MS);
 }
 // sem partida guardada neste computador: retoma a última partida contra bot em andamento na conta
 export async function resumeFromApi(): Promise<void> {

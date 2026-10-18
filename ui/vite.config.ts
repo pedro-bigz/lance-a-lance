@@ -28,5 +28,7 @@ export default defineConfig(({ mode }) => ({
     // o livro de aberturas (~420 KB) vai no bundle de propósito
     chunkSizeWarningLimit: 2000,
   },
-  server: { port: 5173 },
+  // shared/ (fórmula da pontuação e hash do livro, também usados pela API) fica fora de ui/: o servidor de
+  // desenvolvimento libera só ui/ e essa pasta (nunca a raiz do repositório, onde fica api/.env)
+  server: { port: 5173, fs: { allow: [fileURLToPath(new URL('.', import.meta.url)), fileURLToPath(new URL('../shared', import.meta.url))] } },
 }));

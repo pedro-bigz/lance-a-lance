@@ -4,13 +4,15 @@ import { Chess, type Color } from 'chess.js';
 import { VAL, stm, uciObj } from './constants';
 import type { Analysis, Score } from './types';
 import { ENGINE_INFO } from '../engine/config';
+import { moveAccuracy, winPct } from '../../../shared/rating.mjs';
 
 /** chance de vitória de quem joga a partir dos centipeões; a inclinação vem da calibração da versão do motor */
-export const wpCp = (cp: number, k: number = ENGINE_INFO.calibration.wpK): number => 50 + 50 * (2 / (1 + Math.exp(-k * cp)) - 1);
+export const wpCp = (cp: number, k: number = ENGINE_INFO.calibration.wpK): number => winPct(cp, k);
 export const wpScore = (s: Score | null | undefined): number => (!s ? 50 : s.mate != null ? (s.mate > 0 ? 100 : 0) : wpCp(s.cp));
 export const povWp = (r: Analysis): number => (r.terminal === 'mate' ? 0 : r.terminal === 'draw' ? 50 : wpScore(r.lines[0] && r.lines[0].score));
 export const whiteWp = (r: Analysis, fen: string): number => (stm(fen) === 'w' ? povWp(r) : 100 - povWp(r));
-export const accuracy = (loss: number): number => Math.max(0, Math.min(100, 103.1668 * Math.exp(-0.04354 * loss) - 3.1669));
+/** precisão do lance pela perda (a mesma curva da pontuação, shared/rating.mjs) */
+export const accuracy = (loss: number): number => moveAccuracy(loss);
 export function terminalOf(fen: string): 'mate' | 'draw' | null {
   const c = new Chess(fen);
   if (c.in_checkmate()) return 'mate';

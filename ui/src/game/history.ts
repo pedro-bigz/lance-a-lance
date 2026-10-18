@@ -17,7 +17,7 @@ import { currentView, goView } from '../desktop/views';
 import { fmtDate, fmtDelta } from '../ui/format';
 import { viewToast } from '../ui/toast';
 import { setDrawer } from './menus';
-import { ratingInfo } from './rating';
+import { RATING_UI, ratingInfo, rememberServerRating } from './rating';
 import { UI } from './ui-state';
 
 export const RESULT_UI: Record<'andamento' | LocalResult, [string, string]> = {
@@ -126,8 +126,14 @@ export function histItemView(r: GameRecord): HistItemView {
   ]
     .filter(Boolean)
     .join(' · ');
-  const ri = r.ratingDelta != null ? { delta: r.ratingDelta } : ratingInfo(r.id);
-  const rating = ri ? { cls: ri.delta >= 0 ? 'delta-up' : 'delta-down', text: `Rating ${fmtDelta(ri.delta)}` } : null;
+  const known = ratingInfo(r.id);
+  const ri = r.ratingDelta != null ? { delta: r.ratingDelta, accuracy: r.accuracy ?? (known && known.accuracy) } : known;
+  const acc = ri && ri.accuracy != null ? ` · Precisão ${Math.round(ri.accuracy)}%` : '';
+  const rating = ri
+    ? { cls: ri.delta >= 0 ? 'delta-up' : 'delta-down', text: `Rating ${fmtDelta(ri.delta)}${acc}` }
+    : r.ratingStatus === 'pending' || (RATING_UI.pending && RATING_UI.pending === r.id)
+      ? { cls: '', text: 'Calculando a pontuação…' }
+      : null;
   const rated = !ri && !!r.rated && r.status === 'andamento';
   const andamento = r.status === 'andamento';
   return {
@@ -178,6 +184,8 @@ export function openRecord(r: GameRecord): void {
   S.ended = !!r.ended;
   S.resigned = !!r.resigned;
   S.rated = !!r.rated && r.gameMode === 'normal';
+  // pontuação que a API já calculou (o fim de jogo da revisão mostra o delta e a precisão)
+  if (r.ratingDelta != null) rememberServerRating(r.id, { delta: r.ratingDelta, before: null, after: null, accuracy: r.accuracy ?? null });
   if (concluded) {
     if (S.mode === 'play') {
       const names = { w: sideName('w'), b: sideName('b') };

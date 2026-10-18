@@ -37,6 +37,7 @@ contextBridge.exposeInMainWorld('lanceDesktop', {
     list: (params) => ipcRenderer.invoke('games:list', params),
     get: (id) => ipcRenderer.invoke('games:get', id),
     remove: (id) => ipcRenderer.invoke('games:delete', id),
+    rating: (id) => ipcRenderer.invoke('games:rating', id),
   },
   // estatísticas e evolução da pontuação ({from, to, group: 'day'|'week'|'month', tz})
   stats: {

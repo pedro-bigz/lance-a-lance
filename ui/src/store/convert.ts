@@ -88,6 +88,8 @@ export function fromApi(g: ApiGame): GameRecord {
     resultText: m.result_text || REASON_TEXT[g.result_reason as string] || '',
     rated: !!g.rated,
     ratingDelta: g.rating_delta,
+    ratingStatus: g.rating_status ?? null,
+    accuracy: g.player_accuracy ?? null,
     opening: g.opening_name,
   };
 }

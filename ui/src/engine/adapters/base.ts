@@ -7,6 +7,7 @@
    Sem DOM nem React no topo do módulo: vite.config.ts importa o registro para saber quais arquivos copiar. */
 import type { BotId } from '../../core/constants';
 import type { EngineLine, EngineResult } from '../../core/types';
+import { WP_K } from '../../../../shared/rating.mjs';
 
 /** wasm = WebAssembly (precisa de WebAssembly.instantiateStreaming e do .wasm como application/wasm); asm = só JavaScript */
 export type EngineKind = 'wasm' | 'asm';
@@ -75,8 +76,9 @@ export type WorkerFactory = (() => Worker) & { label?: string; probe?: () => Pro
 type LineHandler = (line: string) => void;
 
 const UCI_MOVE = /^[a-h][1-8][a-h][1-8][qrbn]?$/;
-/** curva da chance de vitória usada desde a primeira versão (a mesma do Lichess) */
-export const DEFAULT_WP_K = 0.00368208;
+/** curva da chance de vitória usada desde a primeira versão (a mesma do Lichess); vem da fórmula da pontuação
+    (shared/rating.mjs), que a API usa com o mesmo valor */
+export const DEFAULT_WP_K = WP_K;
 /** tempo para um candidato responder "uciok" e "readyok" antes de passar ao próximo */
 export const BOOT_TIMEOUT = 30000;
 

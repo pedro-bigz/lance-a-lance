@@ -9,6 +9,7 @@ import { ding } from '../board/sound';
 import { persistCls } from '../store/session';
 import { publish } from '../store/view-store';
 import { engine, setStatus } from './engine';
+import { RATING_UI, applyRatingIfDone } from '../game/rating';
 
 export function requestAnalysis(fen: string): void {
   if (S.cache.has(fen) || S.pending.has(fen)) return;
@@ -36,6 +37,8 @@ export function requestAnalysis(fen: string): void {
 function onAnalysis(): void {
   const before = S.cls.map((c) => c && c.key).join();
   classifyAll();
+  // artifact: a pontuação da partida que acabou espera a análise dos lances do jogador
+  if (RATING_UI.pending && RATING_UI.pending === S.gameId) applyRatingIfDone();
   const changed = before !== S.cls.map((c) => c && c.key).join();
   if (changed) {
     const last = S.cls[S.plies.length - 1];
