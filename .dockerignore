@@ -1,0 +1,12 @@
+# Contexto de build da imagem da API (api/Dockerfile): só entra o que a API usa em produção.
+# Lista de permissão: tudo fica de fora, exceto o que está liberado abaixo. Segredos (.env) e
+# certificados (api/db/tls/) nunca entram na imagem.
+*
+!api/package.json
+!api/pnpm-lock.yaml
+!api/server.mjs
+!api/src
+!api/src/**
+!shared
+!shared/**
+!ui/src/book/data.generated.json
