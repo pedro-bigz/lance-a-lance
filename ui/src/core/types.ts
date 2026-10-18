@@ -10,6 +10,8 @@ export interface EngineLine {
   score: Score;
   /** variante principal em UCI */
   pv: string[];
+  /** vitória/empate/derrota em milésimos, quando o motor manda (UCI_ShowWDL) */
+  wdl?: [number, number, number];
 }
 /** Resultado de Engine.analyse. */
 export interface EngineResult {

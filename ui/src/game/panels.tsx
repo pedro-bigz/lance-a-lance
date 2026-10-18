@@ -7,6 +7,7 @@ import { BAD, CLS, CLS_KEYS, PIECE, VAL, stm, uciObj, type ClsKey } from '../cor
 import { evalText, pvSan, uciToSan, whiteWp } from '../core/eval';
 import { S, blind, botColor, gameReady, isLive, sideName, viewIdx } from '../core/state';
 import { openingAt } from '../book/index';
+import { engine } from '../engine/engine';
 import { ClsBadge, ClsSym } from '../board/badge';
 import { GLYPH } from '../board/pieces';
 import { useGameView } from '../react/hooks';
@@ -388,10 +389,15 @@ export function engineStatusText(): string {
   if (!UI.engineReady) return 'Carregando Stockfish…';
   return S.pending.size ? `Stockfish analisando (${S.pending.size})` : 'Stockfish pronto';
 }
+/** dica do estado: a versão do motor e de onde ele subiu (ex.: "Stockfish 19 Lite WASM · wasm (local)") */
+export function engineStatusTitle(): string | undefined {
+  if (!UI.engineReady || S.engineErr) return undefined;
+  return `${engine.name || engine.label} · ${engine.source || '?'}`;
+}
 function EngineStatus() {
   useSyncExternalStore(statusView.subscribe, statusView.get);
   return (
-    <span className="status assist" id="engineStatus">
+    <span className="status assist" id="engineStatus" title={engineStatusTitle()}>
       {engineStatusText()}
     </span>
   );

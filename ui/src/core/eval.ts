@@ -3,8 +3,10 @@
 import { Chess, type Color } from 'chess.js';
 import { VAL, stm, uciObj } from './constants';
 import type { Analysis, Score } from './types';
+import { ENGINE_INFO } from '../engine/config';
 
-export const wpCp = (cp: number): number => 50 + 50 * (2 / (1 + Math.exp(-0.00368208 * cp)) - 1);
+/** chance de vitória de quem joga a partir dos centipeões; a inclinação vem da calibração da versão do motor */
+export const wpCp = (cp: number, k: number = ENGINE_INFO.calibration.wpK): number => 50 + 50 * (2 / (1 + Math.exp(-k * cp)) - 1);
 export const wpScore = (s: Score | null | undefined): number => (!s ? 50 : s.mate != null ? (s.mate > 0 ? 100 : 0) : wpCp(s.cp));
 export const povWp = (r: Analysis): number => (r.terminal === 'mate' ? 0 : r.terminal === 'draw' ? 50 : wpScore(r.lines[0] && r.lines[0].score));
 export const whiteWp = (r: Analysis, fen: string): number => (stm(fen) === 'w' ? povWp(r) : 100 - povWp(r));

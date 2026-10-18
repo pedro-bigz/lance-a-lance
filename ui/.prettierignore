@@ -7,3 +7,5 @@ src/book/data.generated.json
 src/styles/
 # a marcação é a da página original, sem reformatar
 index.html
+# motores do Stockfish (arquivos do pacote npm, como vieram)
+engines/*/

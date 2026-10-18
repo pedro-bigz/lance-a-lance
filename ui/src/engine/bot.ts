@@ -47,16 +47,17 @@ export async function maybeBot(): Promise<void> {
   let uci: string | null;
   const legal = S.game.moves({ verbose: true });
   const tr = trainerMove();
+  // o nível vira opções de busca da versão do motor ("Sem bot" nunca chega aqui)
+  const search = bot.id === 'none' ? null : botEngine.botSearch(bot.id);
   if (tr) uci = tr;
-  // (bot.random é undefined só em "Sem bot", que nunca chega aqui)
-  else if (Math.random() < (bot.random ?? 0) || S.engineErr) {
+  else if (!search || Math.random() < search.random || S.engineErr) {
     const caps = legal.filter((m) => m.captured);
     const pool = caps.length && Math.random() < 0.45 ? caps : legal;
     const m = pool[Math.floor(Math.random() * pool.length)]!;
     uci = m.from + m.to + (m.promotion || '');
   } else {
     try {
-      const r = await botEngine.analyse(fen, { depth: bot.depth, movetime: bot.movetime, skill: bot.skill, multipv: 1 });
+      const r = await botEngine.analyse(fen, { depth: search.depth, movetime: search.movetime, skill: search.skill, elo: search.elo, multipv: 1 });
       uci = r && (r.bestmove || r.best);
     } catch (_) {
       const m = legal[0]!;
