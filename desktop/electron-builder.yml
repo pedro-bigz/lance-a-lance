@@ -9,10 +9,11 @@ directories:
 files:
   - main.js
   - preload.js
+  - mime.js
   - .env
   - app/**
   - package.json
-# Sem dependências nativas: o Stockfish roda em JavaScript dentro do app.
+# Sem dependências nativas: o Stockfish roda em WebAssembly (com reserva em JavaScript) dentro do app.
 npmRebuild: false
 artifactName: LanceALance-${version}-${os}-${arch}.${ext}
 
