@@ -166,9 +166,36 @@ Use `users.id` como `BIGINT UNSIGNED` na FK (o uuid é só para fora; nas respos
 
 ## Iniciar a API
 
+Há duas formas, que usam a mesma porta (8787): rode uma ou outra.
+
 ```bash
-corepack pnpm@10.13.1 start        # node --env-file=.env server.mjs
+corepack pnpm@10.13.1 start        # no Node da máquina: node --env-file=.env server.mjs
+corepack pnpm@10.13.1 docker:up    # em container, junto com o banco (ver "API em Docker")
 ```
+
+### API em Docker
+
+O serviço `api` do `docker-compose.yml` fica no perfil `api`: `pnpm db:up` continua subindo só o banco, e
+`pnpm docker:up` sobe o banco e a API (`docker compose --profile api up -d --build --wait`).
+
+| Comando | O que faz |
+|---|---|
+| `pnpm docker:up` | constrói a imagem (se mudou) e sobe a API em `127.0.0.1:8787` (porta em `API_PORT`) |
+| `pnpm docker:logs` | acompanha o log da API |
+| `pnpm docker:down` | para só a API (o banco continua) |
+
+- **Imagem** (`api/Dockerfile`, ~170 MB, `node:22-alpine`, usuário `node`). O contexto de build é a raiz do
+  repositório, porque a API usa `shared/` (fórmula da pontuação) e `ui/src/book/data.generated.json` (livro); o
+  `.dockerignore` da raiz deixa entrar só esses arquivos e o código da API. Do pacote `stockfish` (~200 MB) só o lite
+  single-threaded vai para a imagem.
+- **Segredos**: nunca entram na imagem. O compose lê o `api/.env` e passa ao container **só as variáveis que a API
+  usa** (banco com `lance_app`, JWT, IAs, limites); a senha do root e a do `lance_migrator` não chegam a ele.
+- **Banco**: a API fala com o MySQL pela rede do compose (`DB_HOST=mysql`, porta 3306), com TLS e verificação do
+  nome (`mysql` está no certificado). Só a `ca.pem` é montada no container.
+- **Limites**: 768 MB de memória e 1 CPU (a análise da pontuação roda um Stockfish por vez, ~150 MB).
+- **Migrações, usuários e backup** continuam rodando da máquina (`pnpm db:migrate`, `pnpm db:users`,
+  `pnpm db:backup`), porque usam credenciais que a API em container não recebe.
+- O app desktop não muda: ele chama `127.0.0.1:8787`, seja a API na máquina ou no container.
 
 `GET /health` é público e mostra só se o tutor está pronto (`ai.ready`) e se o banco responde; o estado de cada IA
 (com ou sem chave, pausada) aparece só no log da API. Para o tutor funcionar basta uma chave (`GEMINI_API_KEY`, `DEEPSEEK_API_KEY` ou `OPENROUTER_API_KEY`) no

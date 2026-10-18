@@ -27,7 +27,7 @@ corepack pnpm@10.13.1 db:tls    # certificados do MySQL
 corepack pnpm@10.13.1 db:up
 corepack pnpm@10.13.1 db:users
 corepack pnpm@10.13.1 db:migrate
-corepack pnpm@10.13.1 start
+corepack pnpm@10.13.1 start      # ou: corepack pnpm@10.13.1 docker:up (API em container, ver api/README.md)
 
 # interface (em outro terminal, a partir da raiz; serve ao desktop e ao artifact)
 cd ui

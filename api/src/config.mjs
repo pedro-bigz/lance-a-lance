@@ -4,7 +4,8 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const env = process.env;
-const str = (k, d = '') => String(env[k] ?? d).trim();
+// variável ausente ou vazia (ex.: GEMINI_URL= no .env, ou ${GEMINI_URL:-} no compose) usa o padrão
+const str = (k, d = '') => String(env[k] ?? '').trim() || String(d).trim();
 
 export const PORT = Number(env.PORT || 8787);
 export const HOST = str('HOST', '127.0.0.1');                 // só a própria máquina, por padrão

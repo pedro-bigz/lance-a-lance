@@ -17,7 +17,10 @@
     "db:users": "node --env-file=.env scripts/db-users.mjs",
     "db:migrate": "node --env-file=.env scripts/migrate.mjs",
     "db:backup": "bash scripts/backup-db.sh",
-    "test": "node --test \"test/**/*.test.mjs\""
+    "test": "node --test \"test/**/*.test.mjs\"",
+    "docker:up": "docker compose --profile api up -d --build --wait",
+    "docker:down": "docker compose --profile api stop api",
+    "docker:logs": "docker compose --profile api logs -f api"
   },
   "dependencies": {
     "chess.js": "0.10.3",
