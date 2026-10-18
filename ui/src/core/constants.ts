@@ -40,21 +40,18 @@ export interface Bot {
   /** Elo aproximado; null em "Sem bot". */
   elo: number | null;
   desc: string;
-  skill?: number;
-  depth?: number;
-  movetime?: number;
-  /** chance de um lance aleatório (os níveis baixos erram de propósito) */
-  random?: number;
   name: string;
 }
+/* Como cada nível pede o lance (skill, profundidade, tempo, aleatoriedade ou UCI_Elo) depende da versão do Stockfish:
+   fica no adaptador (engine/adapters/, botLevels), não aqui. */
 export const BOTS: Bot[] = (
   [
-    { id: 'novato', level: 'Novato', elo: 400, desc: 'acabou de aprender', skill: 0, depth: 1, movetime: 150, random: 0.55 },
-    { id: 'iniciante', level: 'Iniciante', elo: 800, desc: 'erra lances simples', skill: 0, depth: 2, movetime: 250, random: 0.22 },
-    { id: 'intermediario', level: 'Intermediário', elo: 1200, desc: 'joga de clube', skill: 4, depth: 5, movetime: 500, random: 0.06 },
-    { id: 'avancado', level: 'Avançado', elo: 1600, desc: 'tático e sólido', skill: 9, depth: 8, movetime: 800, random: 0 },
-    { id: 'mestre', level: 'Mestre', elo: 2200, desc: 'raramente erra', skill: 16, depth: 13, movetime: 1400, random: 0 },
-    { id: 'gm', level: 'Grão-mestre', elo: 2700, desc: 'Stockfish no máximo', skill: 20, depth: 18, movetime: 2000, random: 0 },
+    { id: 'novato', level: 'Novato', elo: 400, desc: 'acabou de aprender' },
+    { id: 'iniciante', level: 'Iniciante', elo: 800, desc: 'erra lances simples' },
+    { id: 'intermediario', level: 'Intermediário', elo: 1200, desc: 'joga de clube' },
+    { id: 'avancado', level: 'Avançado', elo: 1600, desc: 'tático e sólido' },
+    { id: 'mestre', level: 'Mestre', elo: 2200, desc: 'raramente erra' },
+    { id: 'gm', level: 'Grão-mestre', elo: 2700, desc: 'Stockfish no máximo' },
     { id: 'none', level: 'Sem bot', elo: null, desc: 'você joga dos dois lados' },
   ] as Omit<Bot, 'name'>[]
 ).map((b) => Object.assign(b, { name: b.id === 'none' ? 'Sem bot' : 'Bot ' + b.level }));

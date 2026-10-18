@@ -1,6 +1,8 @@
 // Monta desktop/app/ a partir do build da interface (../ui/dist/lance-a-lance.html, a mesma página publicada como
 // artifact): troca as fontes do Google pelas cópias em vendor/, para o app funcionar offline, e copia o Stockfish e
-// as peças que o build deixa ao lado da página. O chess.js já vai dentro do bundle da interface.
+// as peças que o build deixa ao lado da página. Os arquivos do Stockfish são os da versão do build: a lista vem de
+// ui/dist/engine.json (veja ui/build/stockfish-engine.ts), então qualquer versão registrada funciona sem mudar aqui.
+// O chess.js já vai dentro do bundle da interface.
 // Antes, roda o build da ui (vite build + scripts/finalize.mjs, o mesmo "pnpm build" de ui/) com as dependências
 // instaladas em ui/node_modules. Com --skip-ui-build usa o ui/dist que já existe.
 import { readFileSync, writeFileSync, mkdirSync, rmSync, cpSync, existsSync } from 'node:fs';
@@ -41,7 +43,8 @@ if (/<script[^>]+src="https?:/i.test(html)) throw new Error('A página ainda car
 
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
+  // 'wasm-unsafe-eval': compilar o WebAssembly do Stockfish (o worker de app:// não herda esta CSP, mas fica explícito)
+  "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'",
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self'",
   "img-src 'self' data:",
@@ -66,7 +69,8 @@ ${html}
 rmSync(out, { recursive: true, force: true });
 mkdirSync(out, { recursive: true });
 writeFileSync(join(out, 'index.html'), page);
-cpSync(join(uiDist, 'stockfish.asm.js'), join(out, 'stockfish.asm.js'));
+const engine = JSON.parse(readFileSync(join(uiDist, 'engine.json'), 'utf8'));
+for (const f of engine.files) cpSync(join(uiDist, f), join(out, f));
 cpSync(join(root, 'vendor'), join(out, 'vendor'), { recursive: true });
 cpSync(join(uiDist, 'pieces'), join(out, 'pieces'), { recursive: true });
-console.log('app/ pronto');
+console.log(`app/ pronto (${engine.label}: ${engine.files.join(', ')})`);

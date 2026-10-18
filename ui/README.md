@@ -8,8 +8,9 @@ abaixo). O build gera
 
 - **App desktop** (`../desktop`): `desktop/scripts/prepare.mjs` roda o build e monta `desktop/app/` a partir de
   `dist/lance-a-lance.html`, trocando as fontes do Google pelas cópias locais.
-- **Artifact do claude.ai**: publica-se `dist/lance-a-lance.html` com `dist/stockfish.asm.js` e `dist/pieces/` como
-  arquivos de apoio (mesmos caminhos relativos). Sem `window.lanceDesktop` a página roda sem login, com o localStorage e
+- **Artifact do claude.ai**: publica-se `dist/lance-a-lance.html` com os arquivos do motor listados em `dist/engine.json`
+  (no padrão: `stockfish-19-lite-single.js`, `stockfish-19-lite-single.wasm`, `stockfish-19-asm.js`,
+  `STOCKFISH-LICENSE.txt`) e `dist/pieces/` como arquivos de apoio (mesmos caminhos relativos, ao lado da página). Sem `window.lanceDesktop` a página roda sem login, com o localStorage e
   com o tutor pelo Claude da conta (`window.claude.use('sample')`).
 
 ## Comandos
@@ -19,7 +20,8 @@ Use o pnpm do projeto pelo corepack (o pnpm global 11.x quebra o `node_modules` 
 ```bash
 corepack pnpm@10.13.1 install
 corepack pnpm@10.13.1 dev                  # servidor do Vite (modo artifact, sem login) em http://localhost:5173
-corepack pnpm@10.13.1 build                # dist/lance-a-lance.html + dist/stockfish.asm.js + dist/pieces/
+corepack pnpm@10.13.1 build                # dist/lance-a-lance.html + motor (engine.json) + dist/pieces/
+VITE_STOCKFISH=sf10 corepack pnpm@10.13.1 build  # o mesmo build com outra versão registrada do Stockfish
 corepack pnpm@10.13.1 typecheck            # tsc --noEmit (strict)
 corepack pnpm@10.13.1 lint                 # ESLint (typescript-eslint) + prettier --check
 corepack pnpm@10.13.1 format               # prettier --write
@@ -36,9 +38,85 @@ repassa o `--` ao Vitest, que ignora tudo o que vem depois dele.
 - `scripts/finalize.mjs` transforma o `dist/index.html` em `dist/lance-a-lance.html`: tira o esqueleto (`<!doctype>`,
   `<html>`, `<head>`, metas e o bloco `data-dev-only` de `index.html`, que só imita no `pnpm dev` o esqueleto que o
   artifact e o desktop põem em volta) e põe o script do app (módulo, inline) no fim, depois da marcação.
-- `public/stockfish.asm.js` e `public/pieces/` são copiados como estão para `dist/`.
+- `public/pieces/` é copiado como está para `dist/`. Os arquivos do Stockfish saem de `engines/<versão>/`, só os da versão
+  escolhida (`build/stockfish-engine.ts`, um plugin do Vite), junto com `dist/engine.json` (`{id, label, version, files}`),
+  que o `desktop/scripts/prepare.mjs` usa para copiar os mesmos arquivos. No `pnpm dev` o plugin serve esses arquivos na
+  raiz (o `.wasm` como `application/wasm`).
 - O livro de aberturas (~420 KB) é `src/book/data.generated.json`, gerado por `../tools/gerar-livro.mjs` (que usa o
   chess.js de `node_modules`; instale as dependências antes). Não edite o JSON à mão.
+
+## Motor (Stockfish)
+
+O app fala só com o contrato `StockfishAdapter` (`src/engine/adapters/base.ts`); análise, classificação, bot, estudo,
+tutor e demonstrações não sabem qual versão está rodando. A classe base tem o que é comum (worker, troca de candidato,
+timeout de 30 s, fila de pedidos, leitura das linhas UCI, `analyse()`); cada versão é uma subclasse que declara os
+próprios dados e sobrescreve só os ganchos que mudam (Template Method):
+
+| Membro                                                          | O que é                                                                                          |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `id`, `label`, `version`                                        | id do registro e da pasta `engines/<id>/`, nome para gente, versão do pacote npm `stockfish`     |
+| `candidates`                                                    | ordem de carga: `{kind: 'wasm' \| 'asm', script, wasm?}` (nomes dos arquivos em `engines/<id>/`) |
+| `cdn`                                                           | pastas de CDN com os mesmos arquivos (reserva final, por Blob com `importScripts`)               |
+| `capabilities`                                                  | MultiPV máximo, Skill Level, faixa do `UCI_LimitStrength`/`UCI_Elo`, WDL                         |
+| `botLevels`                                                     | cada nível do bot (`BOTS` em `core/constants.ts`) em skill/depth/movetime/aleatoriedade ou Elo   |
+| `calibration.wpK`                                               | inclinação da curva centipeões → chance de vitória da classificação (`core/eval.ts`)             |
+| `initCommands()`                                                | comandos depois do `uciok` (o SF10 manda `Contempt 0`; o SF19 não tem mais essa opção)           |
+| `strengthCommands()`                                            | Skill Level e, se houver, `UCI_LimitStrength`/`UCI_Elo` antes de cada busca                      |
+| `parseInfo()`, `parseExtra()`, `isPvToken()`, `parseBestmove()` | leitura de `info … score … pv …` (com `wdl` quando vier) e de `bestmove`                         |
+| `probeWasm()`                                                   | confere o `.wasm` (HEAD, `application/wasm`) antes de subir um candidato wasm                    |
+
+Versões registradas (`src/engine/adapters/registry.ts`):
+
+- **`sf19-lite`** (padrão): Stockfish 19 lite do stockfish.js 19.0.1, rede NNUE pequena, WebAssembly de uma thread
+  (não exige cross-origin isolation). Candidatos: `stockfish-19-lite-single.js` + `.wasm` (28 KB + 1,8 MB),
+  `stockfish-19-asm.js` (3 MB, reserva sem WebAssembly, bem mais lenta), depois os mesmos no unpkg. O jsDelivr recusa o
+  pacote 19.0.1 (403, passa de 150 MB por causa dos builds completos de ~94 MB). Os builds completos e os multithread não
+  são usados (tamanho e cross-origin isolation). O `.js` do lite acha o `.wasm` pelo endereço no hash da URL do worker,
+  que a base sempre manda (vale também para o worker de Blob da CDN).
+- **`sf10`**: Stockfish 10 (stockfish.js 10.0.2, asm.js), o motor até a versão 3.5, mantido para comparar e para provar
+  a troca nos dois sentidos.
+
+A versão vem de `src/engine/config.ts`: `VITE_STOCKFISH` (do ambiente ou de um `.env` do Vite) ou o `DEFAULT_ENGINE` do
+registro. Id desconhecido para o build com a lista das versões. A dica do estado ("Stockfish pronto") mostra o motor e o
+candidato que subiu (ex.: "Stockfish 19 Lite WASM · wasm (local)").
+
+Na troca do 10 pelo 19 (outubro de 2026), medido com as partidas de exemplo na profundidade normal do app (15, 1,5 s,
+MultiPV 2): as classificações continuam espalhadas pela régua (sem virar tudo "Melhor" ou "Erro"), então os limiares e a
+curva (`wpK`) ficaram iguais nas duas versões. Os níveis Novato, Iniciante e Intermediário ficaram como estavam (a perda
+média por lance não mudou); Avançado e Mestre, que ficaram bem mais fortes com Skill Level, passaram a usar `UCI_Elo`
+1600 e 2200.
+
+## Como instalar uma nova versão do Stockfish
+
+1. **Baixe o pacote** (ex.: `npm pack stockfish@<versão>`), confira o checksum com `npm view stockfish@<versão>
+dist.shasum` e leia o README dele: quais builds existem, como o `.js` acha o `.wasm`, se precisa de cross-origin
+   isolation (multithread precisa; prefira os single-thread) e a licença.
+2. **Coloque os arquivos** em `ui/engines/<id>/` com os nomes do pacote (ex.: `ui/engines/sf20-lite/`), mais o
+   `STOCKFISH-LICENSE.txt` (o `Copying.txt` do pacote). Prefira um build wasm pequeno e um asm.js de reserva.
+3. **Rode o motor no Node** (`node ui/engines/<id>/<arquivo>.js` aceita UCI pela entrada padrão) e colha: a saída de
+   `uci` (opções e faixas: `MultiPV`, `Skill Level`, `UCI_Elo`, `Hash`), linhas `info … pv …` reais (com `multipv`, `mate`,
+   `wdl`, `lowerbound`) e `bestmove`. Confira se os CDNs servem os arquivos (`curl -I`: 200, CORS, `application/wasm`).
+4. **Crie a subclasse** em `src/engine/adapters/<id>.ts` estendendo `StockfishAdapter` (copie `sf19-lite.ts`): `id`,
+   `label`, `version`, `candidates`, `cdn`, `capabilities`, `botLevels`. Sobrescreva só o que mudar: `initCommands()` se a
+   versão tiver ou perder opções, `parseExtra()`/`isPvToken()`/`parseBestmove()` se o formato da saída mudar,
+   `strengthCommands()` se a força for pedida de outro jeito, `calibration` se a escala das notas mudar.
+5. **Registre** em `src/engine/adapters/registry.ts` (`ENGINE_ADAPTERS`) e, para virar o padrão, troque `DEFAULT_ENGINE`.
+   Para testar antes de trocar: `VITE_STOCKFISH=<id> corepack pnpm@10.13.1 build`.
+6. **Testes**: em `test/engine.test.ts`, um bloco para a versão nova com as linhas reais do passo 3 (parser, comandos
+   UCI gerados, candidatos, níveis do bot); os testes do registro e do build já passam por todas as versões
+   registradas. Rode `typecheck`, `lint`, `test --maxWorkers=2` e `build`.
+7. **Calibre a classificação**: classifique as mesmas partidas (o Morphy de `SAMPLE_PGN` e as de `game/mocks.ts`) com a
+   versão antiga e a nova na profundidade/tempo de `DEPTH` e compare as contagens por classe e a perda de cada lance.
+   Só mexa em `calibration.wpK` (ou nos limiares de `core/classify.ts`, que valem para todas as versões) se as classes
+   ficarem concentradas num extremo.
+8. **Calibre o bot**: para cada nível, meça a perda média por lance (chance de vitória, régua do app) e a taxa de
+   capivaradas numa centena de posições, com um motor forte de referência, na versão antiga e na nova. Ajuste os
+   `botLevels` da versão nova até a perda ficar perto da antiga (com `UCI_Elo` quando a versão tiver, ou skill, depth,
+   movetime e aleatoriedade).
+9. **Confira no navegador e no desktop**: `pnpm build`, sirva `dist/` (com `.wasm` como `application/wasm`) e veja a dica
+   do estado do Stockfish, a análise de uma partida inteira, o bot, a dica e o explorador do estudo; simule a falta do
+   `.wasm` para ver a reserva assumir. No desktop, `node scripts/prepare.mjs` e o mesmo roteiro. Atualize este README, o
+   `README.md` da raiz (arquivos a publicar no artifact) e o `desktop/README.md`.
 
 ## Módulos (`src/`)
 
@@ -53,7 +131,7 @@ conta e por fim a gaveta da sidebar). Os modais das telas de formulário registr
 | `app/`                | `app.tsx` (a árvore: tela de entrada, sidebar, topo, as telas `section.view`, tutor e modal de histórico) e `error-boundary.tsx` (aviso genérico com "Recarregar").                                                                                                                                                                                                                                                                                                                                                                   |
 | `types/`              | Tipos do chess.js 0.10.3 (`chess.d.ts`), da ponte `window.lanceDesktop` e das respostas da API (`api.ts`), de `window.claude` (`globals.d.ts`).                                                                                                                                                                                                                                                                                                                                                                                       |
 | `core/`               | Regras e estado do jogo: `state.ts` (estado `S` tipado), `game.ts` (resetBoard, startGame, applyMove, checkOver, undo, loadPgn), `classify.ts` e `eval.ts` (classificação e avaliação, puros), `result.ts` (`resultOf`), `rating.ts` (regras do rating local), `constants.ts` (bots, classificações, profundidades).                                                                                                                                                                                                                  |
-| `engine/`             | `engine.ts` (Stockfish em Web Worker, fila de pedidos), `analysis.ts` (fila de análise da partida e reclassificação), `bot.ts` (lance do bot e do treino).                                                                                                                                                                                                                                                                                                                                                                            |
+| `engine/`             | `adapters/` (contrato `StockfishAdapter` e uma subclasse por versão; veja "Motor (Stockfish)"), `config.ts` (versão em uso), `engine.ts` (os dois motores do app), `analysis.ts` (fila de análise da partida e reclassificação), `bot.ts` (lance do bot e do treino).                                                                                                                                                                                                                                                                 |
 | `book/`               | Dados do livro, `hash.ts` (cyrb53), `index.ts` (índice, `openingName`, `findLines`, linhas), `tree.ts` (árvore de prefixos do estudo, `bookNext`/`linesNext`).                                                                                                                                                                                                                                                                                                                                                                        |
 | `board/`              | Componente `Board` (`board.tsx`), geometria, setas e fim de jogo (`render.ts`), peça e selo (`badge.tsx`), peças e estilos (`pieces.ts`), animações de lance (`animations.ts`) e de captura (`capture-fx.ts`), arrastar/clicar e promoção (`input.ts`), sons (`sound.ts`), estilo do tabuleiro (`style-picker.ts` e `style-picker-view.tsx`).                                                                                                                                                                                         |
 | `game/`               | Tela do Tabuleiro: estado da interface e elementos estáveis (`ui-state.ts`: `UI`, `REFS`), topo (`top-bar.tsx`), conteúdo da tela (`game-view.tsx`), painéis (`panels.tsx`: jogadores, avaliação, treinador, lances, relatório, navegação, legenda), modal de histórico (`history-modal.tsx`), ações e atalhos (`controls.ts`, `menus.ts`), reprodução e `goTo` (`replay.ts`), desistência (`resign.ts`), rating exibido (`rating.ts`), histórico e abrir partida salva (`history.ts`), exemplos e `window.LanceALance` (`mocks.ts`). |

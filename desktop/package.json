@@ -17,6 +17,7 @@
   },
   "scripts": {
     "prepare:app": "node scripts/prepare.mjs",
+    "test": "node --test",
     "start": "node scripts/prepare.mjs && electron .",
     "icons": "python3 scripts/build-icon.py",
     "dist": "node scripts/prepare.mjs && electron-builder --publish never",

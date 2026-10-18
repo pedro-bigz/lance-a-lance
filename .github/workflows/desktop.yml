@@ -50,6 +50,8 @@ jobs:
         working-directory: ui
         run: pnpm build
       - run: pnpm install --frozen-lockfile
+      - name: Testes do desktop (MIME do app://)
+        run: pnpm test
       - name: Garante o binário do Electron
         run: node node_modules/electron/install.js
       # prepare.mjs roda o build da ui de novo (rápido) antes de montar desktop/app/

@@ -6,6 +6,7 @@ const { app, BrowserWindow, protocol, net, shell, nativeTheme, ipcMain, safeStor
 const path = require('node:path');
 const fs = require('node:fs');
 const { pathToFileURL } = require('node:url');
+const { mimeFor } = require('./mime');
 
 const APP_DIR = path.join(__dirname, 'app');
 const HOST = 'lance';
@@ -19,14 +20,20 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 function serveApp() {
-  protocol.handle('app', (request) => {
+  protocol.handle('app', async (request) => {
     const url = new URL(request.url);
     if (url.host !== HOST) return new Response('Not found', { status: 404 });
     const rel = decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname);
     const file = path.normalize(path.join(APP_DIR, rel));
     // impede sair da pasta do app (../)
     if (file !== APP_DIR && !file.startsWith(APP_DIR + path.sep)) return new Response('Forbidden', { status: 403 });
-    return net.fetch(pathToFileURL(file).toString());
+    const res = await net.fetch(pathToFileURL(file).toString());
+    // tipo explícito por extensão (o .wasm do Stockfish só compila como application/wasm; veja mime.js)
+    const type = mimeFor(file);
+    if (!type || !res.ok) return res;
+    const headers = new Headers(res.headers);
+    headers.set('Content-Type', type);
+    return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
   });
 }
 
