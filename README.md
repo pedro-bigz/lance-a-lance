@@ -12,6 +12,7 @@ brilhante, ótima, melhor, excelente, boa, imprecisão, erro, chance perdida, ca
 | `ui/public/pieces/` | Conjuntos de peças ilustrados (`<conjunto>/{w,b}{k,q,r,b,n,p}.webp`). |
 | `desktop/` | App Electron para macOS, Windows e Linux: login, partidas, estatísticas, administração. Veja `desktop/README.md`. |
 | `api/` | API Node 22 (MySQL + JWT): contas, papéis, partidas, estatísticas e tutor de IA com fallback entre provedores. Veja `api/README.md`. |
+| `shared/` | Módulos puros usados pela interface e pela API: `rating.mjs` (fórmula da pontuação: precisão pelo Stockfish, Elo dos bots, limites) e `book-hash.mjs` (hash das posições do livro). |
 | `tools/` | Geração do livro de aberturas (`gerar-livro.mjs`, escreve `ui/src/book/data.generated.json`) e recorte das peças (`extrair-pecas.py`, grava em `ui/public/pieces/`). |
 | `.github/workflows/desktop.yml` | Confere e builda a interface e gera os instaladores ao criar uma tag `vX.Y.Z`. |
 
