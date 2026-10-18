@@ -38,14 +38,19 @@ export interface StatCard {
 /** cartões do topo; sem dados, os cinco em esqueleto ("carregando…") */
 export function statCards(s: PlayerStats | null): StatCard[] {
   const card = (lab: string, val: string, sub: string, cls = '', st = ''): StatCard => ({ lab, val, sub, cls, st });
-  if (!s) return ['Pontuação', 'Partidas', 'Vitórias', 'Derrotas', 'Empates'].map((l) => card(l, '000', 'carregando…', 'skel'));
+  if (!s) return ['Pontuação', 'Partidas', 'Vitórias', 'Derrotas', 'Empates', 'Precisão'].map((l) => card(l, '000', 'carregando…', 'skel'));
   const n = s.games_played;
+  const acc = s.accuracy;
   return [
     card('Pontuação', fmtNum(s.rating), 'atual · começa em 400', 'hero'),
     card('Partidas', fmtNum(n), n === 1 ? 'concluída com resultado' : 'concluídas com resultado'),
     card('Vitórias', fmtNum(s.wins), `${pct(s.wins, n)}% das partidas`, '', 'st-vitoria'),
     card('Derrotas', fmtNum(s.losses), `${pct(s.losses, n)}% das partidas`, '', 'st-derrota'),
     card('Empates', fmtNum(s.draws), `${pct(s.draws, n)}% das partidas`, '', 'st-empate'),
+    // precisão média pelo Stockfish nas partidas que valeram pontos (a partir da pontuação pelo Stockfish)
+    acc && acc.games && acc.avg != null
+      ? card('Precisão', `${Math.round(acc.avg)}%`, `média em ${fmtNum(acc.games)} partida${acc.games === 1 ? '' : 's'} valendo pontos`)
+      : card('Precisão', '—', 'nas partidas valendo pontos'),
   ];
 }
 export interface ClsRow {
@@ -113,6 +118,8 @@ export interface ChartPoint {
   d: number;
   g: number;
   reason: string | null;
+  /** precisão do jogador na partida (pontuação pelo Stockfish) */
+  acc?: number | null;
   x: number;
   y: number;
 }
@@ -147,8 +154,15 @@ export function chartGeom(h: ChartHist, width: number, now = Date.now()): ChartG
   const W = Math.max(280, width || 600),
     H = 260,
     M = { l: 46, r: 18, t: 16, b: 30 };
-  type P = { t: number; r: number; d?: number; g?: number; reason?: string | null; synthetic?: boolean };
-  let pts: P[] = h.points.map((p) => ({ t: Date.parse(p.at), r: p.rating, d: p.delta, g: p.games, reason: p.reason || null }));
+  type P = { t: number; r: number; d?: number; g?: number; reason?: string | null; acc?: number | null; synthetic?: boolean };
+  let pts: P[] = h.points.map((p) => ({
+    t: Date.parse(p.at),
+    r: p.rating,
+    d: p.delta,
+    g: p.games,
+    reason: p.reason || null,
+    acc: p.accuracy ?? null,
+  }));
   const x0 = h.fromMs != null ? h.fromMs : Math.min((pts[0] as P).t, now - 86400e3);
   pts = pts.map((p) => ({ ...p, t: Math.max(p.t, x0) }));
   const series: P[] = h.fromMs != null && (pts[0] as P).t > x0 ? [{ t: x0, r: h.start_rating, synthetic: true }, ...pts] : pts;
@@ -199,7 +213,16 @@ export function chartGeom(h: ChartHist, width: number, now = Date.now()): ChartG
   const area = `${line}L${X(last.t).toFixed(1)},${Y(lo).toFixed(1)}L${X((series[0] as P).t).toFixed(1)},${Y(lo).toFixed(1)}Z`;
   const tail = now - last.t > 60e3 ? `M${X(last.t).toFixed(1)},${Y(last.r).toFixed(1)}H${X(now).toFixed(1)}` : null;
   // (a versão em página única somava p.g dos pontos da API, que só têm "games": o rótulo saía "em NaN partida(s)")
-  const cpts: ChartPoint[] = pts.map((p) => ({ t: p.t, r: p.r, d: p.d as number, g: p.g as number, reason: p.reason ?? null, x: X(p.t), y: Y(p.r) }));
+  const cpts: ChartPoint[] = pts.map((p) => ({
+    t: p.t,
+    r: p.r,
+    d: p.d as number,
+    g: p.g as number,
+    reason: p.reason ?? null,
+    acc: p.acc ?? null,
+    x: X(p.t),
+    y: Y(p.r),
+  }));
   const label = `Pontuação de ${fmtNum(h.start_rating)} para ${fmtNum(h.current_rating)} no período, em ${games.reduce((s, p) => s + p.games, 0)} partida(s). Use as setas para percorrer os pontos.`;
   return { W, H, M, grid, axis, line, area, tail, pts: cpts, many: pts.length > 40, label };
 }
@@ -230,12 +253,18 @@ export function keySel(key: string, sel: number | null, n: number): number | nul
 export function tipInfo(p: ChartPoint, group: string) {
   const what:
     | { kind: 'text'; text: string }
-    | { kind: 'partida'; reason: string; delta: string; cls: string }
+    | { kind: 'partida'; reason: string; delta: string; cls: string; acc: string | null }
     | { kind: 'grupo'; delta: string; cls: string; games: number } =
     group === 'none'
       ? p.reason === 'inicial'
         ? { kind: 'text', text: 'Pontuação inicial' }
-        : { kind: 'partida', reason: REASON_UI[p.reason as string] || 'Partida', delta: fmtDelta(p.d), cls: deltaCls(p.d) }
+        : {
+            kind: 'partida',
+            reason: REASON_UI[p.reason as string] || 'Partida',
+            delta: fmtDelta(p.d),
+            cls: deltaCls(p.d),
+            acc: p.acc != null ? `precisão ${Math.round(p.acc)}%` : null,
+          }
       : p.g
         ? { kind: 'grupo', delta: fmtDelta(p.d), cls: deltaCls(p.d), games: p.g }
         : { kind: 'text', text: 'Pontuação inicial' };

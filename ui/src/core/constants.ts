@@ -1,5 +1,6 @@
 // Constantes do jogo: valores das peças, classificações dos lances, bots e profundidades de análise
 import { Chess, type PieceType, type ShortMove } from 'chess.js';
+import { BOT_ELO } from '../../../shared/rating.mjs';
 
 export const VAL: Record<PieceType, number> = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
 export const PIECE: Record<PieceType, [string, string]> = {
@@ -42,16 +43,17 @@ export interface Bot {
   desc: string;
   name: string;
 }
-/* Como cada nível pede o lance (skill, profundidade, tempo, aleatoriedade ou UCI_Elo) depende da versão do Stockfish:
+/* O Elo nominal de cada nível vem de BOT_ELO (shared/rating.mjs), a mesma tabela que a API usa no cálculo dos pontos.
+   Como cada nível pede o lance (skill, profundidade, tempo, aleatoriedade ou UCI_Elo) depende da versão do Stockfish:
    fica no adaptador (engine/adapters/, botLevels), não aqui. */
 export const BOTS: Bot[] = (
   [
-    { id: 'novato', level: 'Novato', elo: 400, desc: 'acabou de aprender' },
-    { id: 'iniciante', level: 'Iniciante', elo: 800, desc: 'erra lances simples' },
-    { id: 'intermediario', level: 'Intermediário', elo: 1200, desc: 'joga de clube' },
-    { id: 'avancado', level: 'Avançado', elo: 1600, desc: 'tático e sólido' },
-    { id: 'mestre', level: 'Mestre', elo: 2200, desc: 'raramente erra' },
-    { id: 'gm', level: 'Grão-mestre', elo: 2700, desc: 'Stockfish no máximo' },
+    { id: 'novato', level: 'Novato', elo: BOT_ELO.novato, desc: 'acabou de aprender' },
+    { id: 'iniciante', level: 'Iniciante', elo: BOT_ELO.iniciante, desc: 'erra lances simples' },
+    { id: 'intermediario', level: 'Intermediário', elo: BOT_ELO.intermediario, desc: 'joga de clube' },
+    { id: 'avancado', level: 'Avançado', elo: BOT_ELO.avancado, desc: 'tático e sólido' },
+    { id: 'mestre', level: 'Mestre', elo: BOT_ELO.mestre, desc: 'raramente erra' },
+    { id: 'gm', level: 'Grão-mestre', elo: BOT_ELO.gm, desc: 'Stockfish no máximo' },
     { id: 'none', level: 'Sem bot', elo: null, desc: 'você joga dos dois lados' },
   ] as Omit<Bot, 'name'>[]
 ).map((b) => Object.assign(b, { name: b.id === 'none' ? 'Sem bot' : 'Bot ' + b.level }));

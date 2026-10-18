@@ -27,12 +27,13 @@ Funciona offline: motor (Stockfish 19 lite em WebAssembly, com reserva em asm.js
   IPC (`auth:*`, `users:update-me`, `admin:*`, `ai:*`) que confere se a chamada veio de `app://lance/` e manda a
   requisição à API com o token da sessão. Um 403 numa rota de administração não desloga: o processo principal
   confere `/v1/auth/me` e só encerra a sessão se a própria conta foi desativada ou bloqueada.
-- `.games` (`create`, `update`, `list`, `get`, `remove`) e `.stats` (`me`, `ratingHistory`) são os IPC `games:*` e `stats:*`:
+- `.games` (`create`, `update`, `list`, `get`, `remove`, `rating`) e `.stats` (`me`, `ratingHistory`) são os IPC `games:*` e `stats:*`:
   mesma checagem de origem, ids de usuário e de partida só UUID (texto canônico; número é recusado), corpo da partida com campos conhecidos e até 250 KB (a API valida o resto).
   A página usa essas pontes pelo `GameStore` (`ui/src/store/game-store.ts`): toda partida é salva
   sozinha na conta do usuário, com debounce de ~1 s; se a API cair, a fila fica no localStorage do app (por usuário) e é
-  reenviada com espera crescente, inclusive ao reabrir. A pontuação exibida vem de `player_stats` e a variação (+10/−10) da
-  resposta da API quando a partida termina. Partidas e pontuação guardadas localmente por versões anteriores do app são
+  reenviada com espera crescente, inclusive ao reabrir. A pontuação exibida vem de `player_stats`. Ao concluir uma partida que vale pontos a
+  API responde `rating_change.status = 'pending'` (o topo mostra "Calculando a pontuação…"), roda o Stockfish no servidor e a
+  página pergunta por `games.rating` (`GET /v1/games/:id/rating`) até sair o valor real, que vira a animação de +/−. Partidas e pontuação guardadas localmente por versões anteriores do app são
   ignoradas (ficam no localStorage, sem uso). Até a 3.4 essas chaves usavam o id numérico da conta (`u1`, `u7`); a API agora só
   fala UUID. No primeiro login depois da troca, se a sessão guardada era da mesma conta (mesmo e-mail), o processo principal
   entrega à página o id antigo uma única vez (`legacyId` no retorno do login) e a página move as chaves para o uuid

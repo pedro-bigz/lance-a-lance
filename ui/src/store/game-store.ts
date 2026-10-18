@@ -16,7 +16,7 @@
    rec: veja GameRecord em store/types.ts.
    No desktop, se a API cair, a fila fica no localStorage (por usuário) e é reenviada com espera crescente (2 s a 1 min),
    inclusive ao reabrir o app. */
-import type { GameSaveData, IpcResult, LanceDesktop } from '../types/api';
+import type { GameRatingData, GameSaveData, IpcResult, LanceDesktop } from '../types/api';
 import { LEGACY_SID, UUID_RE, apiBody, apiMoves, fromApi } from './convert';
 import { arrayOf, isObj, isStr, lsGet, lsSet, readGames, writeGames } from './local';
 import type { GameRecord, SaveRecord } from './types';
@@ -38,6 +38,8 @@ export interface GameStoreApi {
   remove(id: string): Promise<boolean>;
   count(): Promise<number | null>;
   onSaved(fn: SavedListener): void;
+  /** desktop: estado da pontuação de uma partida concluída (GET /v1/games/:id/rating); null se não deu para perguntar */
+  rating?(id: string): Promise<GameRatingData | null>;
 }
 
 /** criado em bootApp (no desktop depende do usuário logado) */
@@ -215,8 +217,10 @@ export function apiGameStore(api: GamesBridge, uid: string): GameStoreApi {
       // o que ainda está na fila aparece com os dados mais novos (ou no topo, se a API ainda não conhece)
       for (const p of pend) {
         const i = games.findIndex((g) => g.id === p.id);
-        if (i >= 0) games[i] = { ...p, serverId: games[i]!.serverId, ratingDelta: games[i]!.ratingDelta };
-        else if (!offset) {
+        if (i >= 0) {
+          const g = games[i]!;
+          games[i] = { ...p, serverId: g.serverId, ratingDelta: g.ratingDelta, ratingStatus: g.ratingStatus, accuracy: g.accuracy };
+        } else if (!offset) {
           games.unshift(p);
           added++;
         }
@@ -248,6 +252,12 @@ export function apiGameStore(api: GamesBridge, uid: string): GameStoreApi {
     },
     onSaved(fn) {
       listeners.push(fn);
+    },
+    async rating(id) {
+      const s = sid(id);
+      if (!s || !api.rating) return null;
+      const r = await api.rating(s).catch(() => null);
+      return r && r.ok ? r : null;
     },
   };
   return store;

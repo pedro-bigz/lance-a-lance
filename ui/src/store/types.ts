@@ -30,6 +30,10 @@ export interface GameRecord {
   /** vale pontuação (os exemplos do histórico não têm o campo) */
   rated?: boolean;
   ratingDelta?: number | null;
+  /** desktop: estado da pontuação calculada pela API ('pending' enquanto o Stockfish do servidor analisa) */
+  ratingStatus?: 'pending' | 'applied' | 'failed' | null;
+  /** desktop: precisão do jogador (0–100) medida pelo Stockfish do servidor */
+  accuracy?: number | null;
   plyCount?: number;
   opening?: string | null;
   mock?: boolean;

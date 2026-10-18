@@ -190,9 +190,12 @@ function coachBody(): [ClsKey | null, ReactNode] {
         {` ${endTxt}`}
         {ri ? (
           <>
-            {` · Rating ${ri.before} → ${ri.after} `}
-            <span className={ri.delta >= 0 ? 'delta-up' : 'delta-down'}>{`(${fmtDelta(ri.delta)})`}</span>
+            {ri.before != null && ri.after != null ? ` · Rating ${ri.before} → ${ri.after} ` : ' · Rating '}
+            <span className={ri.delta >= 0 ? 'delta-up' : 'delta-down'}>{ri.before != null ? `(${fmtDelta(ri.delta)})` : fmtDelta(ri.delta)}</span>
+            {ri.accuracy != null ? ` · Sua precisão ${Math.round(ri.accuracy)}%` : null}
           </>
+        ) : RATING_UI.pending && RATING_UI.pending === S.gameId ? (
+          ' · Calculando a pontuação…'
         ) : S.mode === 'play' && botColor() && !S.rated ? (
           ' · Não valeu rating (modo assistido)'
         ) : null}

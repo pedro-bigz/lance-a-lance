@@ -8,9 +8,15 @@ importers:
 
   .:
     dependencies:
+      chess.js:
+        specifier: 0.10.3
+        version: 0.10.3
       mysql2:
         specifier: ^3.24.6
         version: 3.24.6(@types/node@26.6.5)
+      stockfish:
+        specifier: 19.0.1
+        version: 19.0.1
 
 packages:
 
@@ -20,6 +26,9 @@ packages:
   aws-ssl-profiles@1.1.2:
     resolution: {integrity: sha512-NZKeq9AfyQvEeNlN0zSYAaWrmBffJh3IELMZfRpJVWgrpEbtEpnjvzqBPf+mxoI287JohRDoa+/nsfqqiZmF6g==}
     engines: {node: '>= 6.0.0'}
+
+  chess.js@0.10.3:
+    resolution: {integrity: sha512-i51JgVM0ksFMbLJYKoDpfrcFxJHq/XQQx8NltCdfMyDv7vpU5JVzsZz1EOw7nA27eGA5t8tSxodAN+Wc704BoQ==}
 
   generate-function@2.3.1:
     resolution: {integrity: sha512-eeB5GfMNeevm/GRYq20ShmsaGcmI81kIX2K9XQx5miC8KdHaC6Jm0qQ8ZNeGOi7wYB8OsdxKs+Y2oVuTFuVwKQ==}
@@ -55,6 +64,10 @@ packages:
     resolution: {integrity: sha512-6CKD38c31SENivxOADeMNLdukOnUxUcflKtzVWzace7Riv1v7cAEym5Cx9Q7gYZ3ezIJI7ZpqecQq8cqNeSSFg==}
     engines: {bun: '>=1.0.0', deno: '>=2.0.0', node: '>=12.0.0'}
 
+  stockfish@19.0.1:
+    resolution: {integrity: sha512-bTwsO4e9HAwPBKls1+szcfibmaWRNzTF20rQE/XPdB3LOSoT6XTZDr1zYwriwSRRFT5MkvqrglPmJrKEVXGnyQ==}
+    hasBin: true
+
   undici-types@8.9.0:
     resolution: {integrity: sha512-KTDyRTYX8sWmKXAikPHHSyc63CRPETMctyjKFupcC6OBLXT3xsN0e9aF7m+mIXutFWpUXuedtowG7iLOzp0kQg==}
 
@@ -65,6 +78,8 @@ snapshots:
       undici-types: 8.9.0
 
   aws-ssl-profiles@1.1.2: {}
+
+  chess.js@0.10.3: {}
 
   generate-function@2.3.1:
     dependencies:
@@ -98,5 +113,7 @@ snapshots:
   safer-buffer@2.1.2: {}
 
   sql-escaper@1.5.2: {}
+
+  stockfish@19.0.1: {}
 
   undici-types@8.9.0: {}

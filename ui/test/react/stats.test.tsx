@@ -55,7 +55,7 @@ async function open() {
 describe('Estatísticas', () => {
   it('cartões, tabela de classificações e subtítulo do gráfico', async () => {
     await open();
-    await waitFor(() => expect(document.querySelectorAll('#statCards .stat-card').length).toBe(5));
+    await waitFor(() => expect(document.querySelectorAll('#statCards .stat-card').length).toBe(6));
     const cards = document.getElementById('statCards')!;
     expect(within(cards).getByText('410')).toBeTruthy();
     expect(within(cards).getByText('67% das partidas')).toBeTruthy();
@@ -120,6 +120,6 @@ describe('Estatísticas', () => {
     expect(screen.getByText('Não foi possível carregar o gráfico')).toBeTruthy();
     await waitFor(() => expect(document.getElementById('statsMsg')!.textContent).toBe('Não foi possível carregar as estatísticas. Sem conexão.'));
     // sem dados: cartões em esqueleto
-    expect(document.querySelectorAll('#statCards .stat-card.skel').length).toBe(5);
+    expect(document.querySelectorAll('#statCards .stat-card.skel').length).toBe(6);
   });
 });

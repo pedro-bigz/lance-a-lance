@@ -67,6 +67,10 @@ export interface ApiGame {
   ply_count: number;
   rated: boolean;
   rating_delta: number | null;
+  /** pontuação pelo Stockfish no servidor: 'pending' até a análise terminar; null = não vale ou é de antes */
+  rating_status?: 'pending' | 'applied' | 'failed' | null;
+  /** precisão do jogador (0–100) medida pelo Stockfish do servidor */
+  player_accuracy?: number | null;
   meta: ApiGameMeta | null;
   started_at: string;
   finished_at?: string | null;
@@ -96,10 +100,24 @@ export interface ApiGameBody {
   started_at?: string;
 }
 
+/** Mudança de pontuação de uma partida. status 'pending': a API ainda está analisando (before = after = atual,
+    delta 0); 'applied': o valor real, com a precisão e o Elo do bot usados; 'failed': não deu para calcular. */
 export interface RatingChange {
+  status?: 'pending' | 'applied' | 'failed';
   before: number;
   after: number;
   delta: number;
+  accuracy?: number | null;
+  bot_elo?: number | null;
+  expected_score?: number | null;
+  engine_version?: string | null;
+}
+/** Resposta de GET /v1/games/:id/rating (games:rating). */
+export interface GameRatingData {
+  game_id: string;
+  rating_status: 'pending' | 'applied' | 'failed' | null;
+  rating_change: RatingChange | null;
+  rating: number | null;
 }
 /** Resposta de games:create / games:update. */
 export interface GameSaveData {
@@ -124,6 +142,8 @@ export interface PlayerStats {
   total_moves: number;
   avg_moves: number;
   moves: Record<string, MoveStat>;
+  /** precisão média pelo Stockfish nas partidas que valeram pontos (desde a pontuação pelo Stockfish) */
+  accuracy?: { games: number; avg: number | null };
   updated_at?: string;
 }
 export interface RatingPoint {
@@ -132,6 +152,9 @@ export interface RatingPoint {
   delta: number;
   games: number;
   reason?: string | null;
+  /** precisão do jogador na partida (pontuação pelo Stockfish); null nos pontos antigos */
+  accuracy?: number | null;
+  bot_elo?: number | null;
   game_id?: string | null;
 }
 export interface RatingHistoryData {
@@ -206,6 +229,8 @@ export interface LanceDesktop {
     }): Promise<IpcResult<{ games: ApiGame[]; total: number; limit: number; offset: number }>>;
     get(id: string): Promise<IpcResult<{ game: ApiGame }>>;
     remove(id: string): Promise<IpcResult<{ deleted?: unknown }>>;
+    /** estado da pontuação calculada pela API (app desktop a partir desta versão) */
+    rating?(id: string): Promise<IpcResult<GameRatingData>>;
   };
   stats?: {
     me(params?: Record<string, string>): Promise<IpcResult<{ stats: PlayerStats }>>;

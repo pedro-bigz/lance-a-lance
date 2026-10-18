@@ -10,7 +10,7 @@ app desktop ──login──▶ API (.env com as chaves) ──▶ MySQL (users
 ```
 
 Node 22 ou mais novo, `node:http` puro (sem framework: são poucas rotas e um roteador de 20 linhas basta).
-Única dependência: `mysql2`. Use o pnpm do projeto pelo corepack (não o pnpm global):
+Dependências: `mysql2`, `stockfish@19.0.1` (só o lite-single é usado, na pontuação) e `chess.js` 0.10.3 (a mesma da interface, para refazer os lances). Use o pnpm do projeto pelo corepack (não o pnpm global):
 
 ```bash
 corepack pnpm@10.13.1 install
@@ -99,6 +99,7 @@ tabela `schema_migrations`. Para mudar o banco, crie um arquivo novo (`003_...sq
 | `002_roles.sql` | tabela `roles` (`1 administrador`, `2 jogador`) e `users.role_id` (FK, padrão jogador); quem estava no antigo `ADMIN_EMAILS` (`teste@lance.local`) virou administrador |
 | `003_games_stats.sql` | tabelas `games`, `player_stats` e `rating_history`; cada usuário existente ganhou a linha de `player_stats` com 400 e o ponto `inicial` no histórico |
 | `004_uuid.sql` | coluna `uuid BINARY(16) NOT NULL UNIQUE` em `users` e `games`; as linhas existentes ganharam um UUID v7 montado a partir do `created_at` (sem mexer no `updated_at`) |
+| `006_rating_analysis.sql` | pontuação pelo Stockfish no servidor: em `games`, `rating_status` (`pending`/`applied`/`failed`; NULL = não vale ou é anterior), `rating_attempts`, `player_accuracy`, `bot_elo`, `expected_score`, `engine_version`, `rating_applied_at` e o índice `games_rating_status_idx`; em `rating_history`, `player_accuracy`, `bot_elo`, `expected_score`. Só `ADD COLUMN` (INSTANT) e índice online: a API antiga continua funcionando com o banco migrado |
 | `005_player_stats_english_columns.sql` | renomeia as colunas de classificação de `player_stats` para inglês (`livro`→`book_moves`, `brilhante`→`brilliant_moves`, `otima`→`great_moves`, `melhor`→`best_moves`, `excelente`→`excellent_moves`, `boa`→`good_moves`, `imprecisao`→`inaccuracies`, `erro`→`mistakes`, `chance_perdida`→`missed_wins`, `capivarada`→`blunders`); `RENAME COLUMN` instantâneo, sem mexer nos dados nem no `updated_at` |
 
 Padrão de nomes: tabelas, colunas, índices e constraints **só em inglês**, `snake_case`. Valores guardados (status, motivo,
@@ -128,6 +129,8 @@ games  id BIGINT UNSIGNED PK (interno) · uuid BINARY(16) UNIQUE (id público, v
        status ENUM('em_andamento','concluida','abandonada') · result ENUM('1-0','0-1','1/2-1/2') NULL · result_reason VARCHAR(30) NULL
        start_fen VARCHAR(100) NULL · pgn TEXT · moves JSON [{uci, san, cls}] · meta JSON (dados da tela) · opening_name
        ply_count · rated (vale pontuação) · rating_delta SMALLINT NULL
+       rating_status ENUM('pending','applied','failed') NULL · rating_attempts · player_accuracy DECIMAL(5,2) · bot_elo · expected_score DECIMAL(5,4)
+       engine_version VARCHAR(40) · rating_applied_at (pontuação pelo Stockfish, migração 006)
        stats_applied (resultado já somado) · counted_moves JSON (lances já somados, por cor)
        started_at · finished_at · created_at · updated_at
        índices: uuid (único), (white_user_id, status), (black_user_id, status), (white_user_id, finished_at), (black_user_id, finished_at)
@@ -140,7 +143,7 @@ player_stats  user_id PK → users.id (ON DELETE CASCADE) · rating (padrão 400
        (users: índice único users_uuid_unique; games: games_uuid_unique)
 
 rating_history  id PK · user_id → users.id (CASCADE) · game_id → games.id (SET NULL) · rating_before · rating_after · delta
-       reason ('inicial', 'vitoria', 'derrota', 'empate') · created_at · índice (user_id, created_at)
+       reason ('inicial', 'vitoria', 'derrota', 'empate') · player_accuracy · bot_elo · expected_score (006) · created_at · índice (user_id, created_at)
 ```
 
 A regra "toda partida tem pelo menos um usuário" fica na API (quem cria a partida é sempre ligado a um lado), porque o
@@ -172,7 +175,9 @@ corepack pnpm@10.13.1 start        # node --env-file=.env server.mjs
 `.env`; com mais de uma, a API troca sozinha quando uma falha.
 
 ```bash
-corepack pnpm@10.13.1 test   # testes da cadeia de IA (node:test, fetch simulado)
+corepack pnpm@10.13.1 test   # node:test: IA (fetch simulado), fórmula, fila e análise (motor falso), Stockfish real numa partida curta
+# com o banco e a API de verdade (conta temporária, apagada no fim):
+LANCE_DB_TESTS=1 node --env-file=.env --test test/rating-api.integration.test.mjs
 ```
 
 ## Variáveis (`.env`, modelo em `.env.example`)
@@ -234,6 +239,7 @@ também é 404. Nenhum id numérico do banco aparece em resposta nenhuma.
 | PATCH | `/v1/games/:id` | quem jogou | atualiza lances, PGN, modo, estado; concluída só aceita as classificações que faltavam |
 | GET | `/v1/games?status=&limit=&offset=&user_id=` | logado | lista resumida (sem `moves`/`pgn`) da mais recente para a mais antiga: `{games, total, limit, offset}`; `limit` 1–100 (padrão 20) |
 | GET | `/v1/games/:id` | quem jogou ou administrador | partida completa (com `moves`, `pgn`, `start_fen`) |
+| GET | `/v1/games/:id/rating` | quem jogou ou administrador | estado da pontuação: `{game_id, rating_status, rating_change, rating}` (veja "Pontuação pelo Stockfish") |
 | DELETE | `/v1/games/:id` | quem jogou | exclui a partida (`{deleted: {id}}`, o uuid); pontuação e estatísticas já somadas ficam (o ponto do histórico perde o `game_id`) |
 | GET | `/v1/stats/me?user_id=` | logado | `{stats}`: totais, pontuação e cada tipo de lance com total e média por partida |
 | GET | `/v1/stats/me/rating-history?from=&to=&group=&tz=&user_id=` | logado | pontos para o gráfico da pontuação |
@@ -271,8 +277,8 @@ Regras:
   pontuação, `encerrada` sem resultado vira derrota de quem jogou (a regra do app: "Encerrar e avaliar" conta como derrota).
 - Ao concluir, numa transação que trava a linha da partida (`SELECT … FOR UPDATE`) e as de `player_stats`:
   1. se `stats_applied = 0`: soma vitória/derrota/empate (do ponto de vista de cada usuário ligado) e `games_played`; se vale
-     pontuação, calcula no servidor `+10` vitória, `−10` derrota, `0` empate (mínimo 100), grava `player_stats.rating`,
-     `games.rating_delta` e uma linha em `rating_history`; marca `stats_applied = 1`. Concluir de novo não soma de novo.
+     pontuação, marca `rating_status = 'pending'` (a pontuação sai depois, pela fila de análise; veja "Pontuação pelo
+     Stockfish"); marca `stats_applied = 1`. Concluir de novo não soma de novo.
   2. conta os lances classificados **de cada usuário** (só os da cor dele) e soma em `player_stats` a diferença para o que
      já tinha contado (`counted_moves`). Assim as classificações que chegam depois (o Stockfish termina de avaliar depois do
      fim) entram quando chegam, e reenviar não duplica. `games_classified` conta as partidas com algum lance contado.
@@ -280,10 +286,13 @@ Regras:
 - **Concluída é final**: lances diferentes, outro resultado ou voltar para em andamento dão 409. Reenviar os mesmos valores
   é aceito (o app manda a partida inteira a cada gravação); `moves` com os mesmos lances só preenche classificações que
   estavam vazias (as já gravadas não mudam); `pgn`, `meta` e `opening_name` ficam como estavam.
-- A resposta de POST/PATCH é `{game, rating_change, rating}`: `rating_change = {before, after, delta}` quando a partida
-  concluída mexeu na pontuação (é o que o app usa para a animação +10/−10) e `rating` = pontuação atual.
+- A resposta de POST/PATCH é `{game, rating_change, rating}`: numa partida concluída que vale pontos,
+  `rating_change = {status: 'pending', before, after, delta: 0}` (before = after = pontuação atual: um app antigo só vê
+  "sem mudança") até a análise terminar; depois, `{status: 'applied', before, after, delta, accuracy, bot_elo,
+  expected_score, engine_version}`; `rating` = pontuação atual. Partidas antigas (+10/−10) saem como `applied` com
+  `accuracy` null e não são recalculadas.
 
-`game` = `{id (uuid da partida), client_ref, white_user_id, black_user_id (uuid de cada lado ou null), color (lado de quem pediu), opponent_type, bot_level, mode, status,
+`game` (inclui `rating_status` e `player_accuracy`) = `{id (uuid da partida), client_ref, white_user_id, black_user_id (uuid de cada lado ou null), color (lado de quem pediu), opponent_type, bot_level, mode, status,
 result, result_reason, outcome ('vitoria'|'derrota'|'empate'|null, do ponto de vista de quem pediu), opening_name, ply_count,
 rated, rating_delta, meta, started_at, finished_at, created_at, updated_at}` e, na leitura completa, `start_fen`, `pgn`, `moves`.
 
@@ -296,6 +305,49 @@ updated_at}`; as chaves de `moves` são as colunas de `player_stats` (classifica
 `month`, agrupando no fuso `tz` (minutos a somar ao UTC, ex. `-180`). Sem `group`, um ponto por mudança:
 `{at, rating, delta, games, reason, game_id (uuid da partida ou null)}`; agrupado, o último valor de cada período: `{at, rating, delta (soma), games, min,
 max}`. Vem também `start_rating` (pontuação no começo do período, para a linha começar na borda) e `current_rating`.
+
+### Pontuação pelo Stockfish
+
+Os pontos de cada partida que vale pontuação dependem do resultado, da força do bot em relação ao rating do jogador e da
+precisão dos lances do jogador, medida pelo Stockfish **no servidor** (o app não manda nem consegue mudar nada disso: a API
+usa só os lances e a posição inicial gravados). A fórmula é uma só, em `../shared/rating.mjs`, importada também pela
+interface (rating local do artifact):
+
+1. **Precisão** (0–100) só dos lances do jogador: chance de vitória antes/depois do lance pela mesma curva da interface
+   (`WP_K = 0.00368208`), perda Δ = max(0, antes − depois) (0 se o lance é o melhor do motor ou dá mate), precisão do
+   lance = `103,1668·e^(−0,04354·Δ) − 3,1669` em [0, 100]; lance de livro = 100. Precisão da partida = **média harmônica
+   ponderada** Σw / Σ(w / max(10, a)), com peso w = max(0,1; 4p(1−p)), p = chance antes ou depois (a maior). Medido em
+   partidas reais: a média simples dava 95 a quem perdeu para o Grão-mestre jogando ao acaso (depois de perdida, todo
+   lance "perde 0"); a ponderada dá 68–70 nesse caso e 96–99 nas partidas limpas.
+2. **Expectativa**: `E = 1 / (1 + 10^((eloBot − rating)/400))`, com o Elo nominal do nível (`BOT_ELO`, o mesmo da interface).
+3. **Base** `32·(S − E)`; vitória × (0,5 + precisão/100); derrota × (1,5 − precisão/100); empate `32·(0,5 − E) + (precisão − 70)/10`.
+4. **Limites**: vitória +4…+25, derrota −25…−4, empate −10…+10, inteiro; rating mínimo 100.
+5. **Antiabuso**: desistir/encerrar com menos de 6 lances do jogador = derrota com precisão 0. Lances ilegais, ou um
+   resultado que o tabuleiro não confirma (vitória sem mate do bot, empate sem empate no tabuleiro), contam como derrota
+   com precisão 0.
+
+| Arquivo | Papel |
+|---|---|
+| `src/engine/base.mjs` | `UciEngine`: processo filho (`node stockfish-19-lite-single.js`), UCI por stdin/stdout, prazos, `analyse(fen, lances, {depth})`; ganchos por versão (Template Method) |
+| `src/engine/sf19-lite.mjs`, `registry.mjs` | Stockfish 19 lite (`stockfish@19.0.1`, só o lite-single); `ENGINE_ID` e `ANALYSIS` (profundidade fixa) num lugar só |
+| `src/rating/book.mjs` | livro de aberturas da interface (`ui/src/book/data.generated.json` + `shared/book-hash.mjs`) |
+| `src/rating/analyse-game.mjs` | refaz os lances com o chess.js (legalidade, mate/empate no tabuleiro) e mede a precisão |
+| `src/rating/compute.mjs` | do resultado + análise ao delta (fórmula única) |
+| `src/rating/queue.mjs` | fila no processo da API: uma análise por vez, sem duplicar, até 3 tentativas com intervalo crescente |
+| `src/rating/store.mjs` | banco: pendentes e a aplicação numa transação com `FOR UPDATE` (aplica uma vez só) |
+| `src/rating/index.mjs` | monta a fila; o motor sobe na primeira análise e é encerrado depois de 60 s parado |
+
+Fluxo: a conclusão grava o resultado e as estatísticas como antes e deixa `rating_status = 'pending'`; depois do commit a
+partida entra na fila. A análise usa `Threads 1`, `Hash 16`, `MultiPV 1`, **profundidade 14** fixa e `ucinewgame` a cada
+partida (determinística: a mesma partida dá a mesma precisão). No fim, a transação trava a partida e a linha de
+`player_stats`, confere que ainda está pendente, aplica o delta, grava `rating_history` (motivo, precisão, Elo do bot,
+expectativa) e as colunas da partida (`rating_status = 'applied'`). Falha → `failed` com `rating_attempts + 1` e nova
+tentativa (até 3; a rota mostra `pending` enquanto há tentativas); ao iniciar, a API põe de volta na fila as pendentes e as
+falhas com tentativas sobrando. O app pergunta em `GET /v1/games/:id/rating` até o `status` sair de `pending`.
+
+Custo medido (Mac, uma thread): partida de 38 lances do jogador (74 posições) — profundidade 12: 0,6 s; **14: 2,1 s**;
+15: 12 s; 16: 18 s; 18: 36 s; a precisão muda menos de 1,5 ponto entre 14 e 18. Memória: o processo do Stockfish fica em
+~140–150 MB enquanto ativo (encerrado depois de 60 s sem trabalho); a API não cresce.
 
 ### Papéis e proteções
 

@@ -27,3 +27,7 @@ a.menu-item{display:block;color:inherit;text-decoration:none}
 body:not(.blind) .blind-only{display:none!important}
 body.blind .assist{display:none!important}
 body.blind .player,body.blind .navbar{padding-left:0}
+/* pontuação sendo calculada pelo Stockfish (desktop: no servidor; artifact: a análise da página) */
+.rating-pill.calculating b{font-family:inherit;font-size:12px;font-weight:600;color:var(--muted);animation:rating-calc 1.4s ease-in-out infinite}
+@keyframes rating-calc{50%{opacity:.45}}
+@media (prefers-reduced-motion:reduce){.rating-pill.calculating b{animation:none}}
