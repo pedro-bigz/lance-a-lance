@@ -11,6 +11,7 @@ import * as users from './src/users.mjs';
 import * as games from './src/games.mjs';
 import * as stats from './src/stats.mjs';
 import { chat, tutorStatus } from './src/tutor.mjs';
+import { ratingQueue, shutdownRating, ENGINE_VERSION } from './src/rating/index.mjs';
 
 const log = (...a) => console.log(new Date().toISOString(), ...a);
 
@@ -34,6 +35,8 @@ const ROUTES = [
   ['GET',   '/v1/games/:id',     (req, res, p) => games.getOne(req, res, p.id), 'games'],
   ['PATCH', '/v1/games/:id',     (req, res, p) => games.patch(req, res, p.id), 'games'],
   ['DELETE','/v1/games/:id',     (req, res, p) => games.remove(req, res, p.id), 'games'],
+  // pontuação da partida calculada pelo Stockfish no servidor (o app pergunta até sair de 'pending')
+  ['GET',   '/v1/games/:id/rating', (req, res, p) => games.rating(req, res, p.id), 'games'],
   ['GET',   '/v1/stats/me',      (req, res, p, url) => stats.me(req, res, url), 'games'],
   ['GET',   '/v1/stats/me/rating-history', (req, res, p, url) => stats.ratingHistory(req, res, url), 'games'],
   // o tutor exige usuário logado, ativo e não bloqueado
@@ -81,7 +84,7 @@ const server = http.createServer(async (req, res) => {
     log('erro', e.code || '', e.message);
     if (res.headersSent) return;
     if (/^(ECONNREFUSED|ER_ACCESS_DENIED_ERROR|ER_BAD_DB_ERROR|PROTOCOL_CONNECTION_LOST|ETIMEDOUT|HANDSHAKE_SSL_ERROR|HANDSHAKE_NO_SSL_SUPPORT|ER_SECURE_TRANSPORT_REQUIRED)$/.test(e.code || '')) { log('banco indisponível', e.code, '(confira se o MySQL está rodando e o TLS: DB_SSL_CA e o certificado em db/tls/)'); return send(res, 503, { ok: false, error: 'Serviço temporariamente indisponível. Tente de novo em instantes.' }); }
-    if (e.code === 'ER_NO_SUCH_TABLE') { log('banco sem migração (rode pnpm db:migrate)'); return send(res, 503, { ok: false, error: 'Serviço temporariamente indisponível. Tente de novo em instantes.' }); }
+    if (e.code === 'ER_NO_SUCH_TABLE' || e.code === 'ER_BAD_FIELD_ERROR') { log('banco sem migração (rode pnpm db:migrate)'); return send(res, 503, { ok: false, error: 'Serviço temporariamente indisponível. Tente de novo em instantes.' }); }
     send(res, 500, { ok: false, error: 'erro interno' });
   }
 });
@@ -99,4 +102,21 @@ const aiSummary = () => tutorStatus().providers.map(p => `${p.id} ${p.configured
 server.listen(PORT, HOST, async () => {
   const db = await ping();
   log(`API do Lance a Lance em http://${HOST}:${PORT} — IA ${aiSummary()}, banco ${db ? 'ok' : 'INDISPONÍVEL'}${db ? ', ' + await adminCount() : ` (${lastPingError}; confira se o MySQL está rodando e o TLS: DB_SSL_CA e db/tls/)`}`);
+  // pontuações que ficaram pendentes (API reiniciada no meio, falhas com tentativas sobrando) voltam para a fila
+  if (db) {
+    try {
+      const n = await ratingQueue.resume();
+      log(`pontuação pelo Stockfish (${ENGINE_VERSION}): ${n ? `${n} partida(s) pendente(s) na fila` : 'nenhuma pendente'}`);
+    } catch (e) { log('pontuação: não foi possível retomar as pendentes', e.code || '', e.message, e.code === 'ER_BAD_FIELD_ERROR' ? '(rode pnpm db:migrate)' : ''); }
+  }
 });
+
+// encerramento: para a fila e o processo do Stockfish (as pendentes continuam gravadas e voltam na próxima subida)
+for (const sig of ['SIGINT', 'SIGTERM']) {
+  process.once(sig, async () => {
+    log(`${sig}: encerrando`);
+    server.close();
+    await Promise.race([shutdownRating(), new Promise((r) => setTimeout(r, 5000))]);
+    process.exit(0);
+  });
+}

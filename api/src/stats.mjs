@@ -14,6 +14,8 @@ export async function statsOf(uid, uuid) {
   await transaction(db => ensureStats(db, uid));
   const [s] = await query('SELECT * FROM player_stats WHERE user_id = ?', [uid]);
   const per = Number(s.games_classified);
+  // precisão média pelo Stockfish nas partidas que valeram pontuação (a partir da migração 006)
+  const [acc] = await query("SELECT COUNT(*) AS n, AVG(player_accuracy) AS avg FROM games WHERE (white_user_id = ? OR black_user_id = ?) AND rating_status = 'applied' AND player_accuracy IS NOT NULL", [uid, uid]);
   // stats.moves: uma chave por coluna de classificação de player_stats (book_moves, ..., blunders)
   const moves = {};
   for (const col of Object.values(CLS_COLUMNS)) moves[col] = { total: Number(s[col]), avg: avg(Number(s[col]), per) };
@@ -21,7 +23,9 @@ export async function statsOf(uid, uuid) {
     user_id: uuid, rating: Number(s.rating),
     games_played: Number(s.games_played), wins: Number(s.wins), losses: Number(s.losses), draws: Number(s.draws),
     games_classified: per, total_moves: Number(s.total_moves), avg_moves: avg(Number(s.total_moves), per),
-    moves, updated_at: iso(s.updated_at),
+    moves,
+    accuracy: { games: Number(acc.n), avg: acc.avg == null ? null : Math.round(Number(acc.avg) * 10) / 10 },
+    updated_at: iso(s.updated_at),
   };
 }
 
@@ -63,7 +67,7 @@ export async function ratingHistory(req, res, url) {
   if (from) { where.push('h.created_at >= ?'); params.push(from); }
   if (to) { where.push('h.created_at <= ?'); params.push(to); }
   // a partida sai pelo uuid (game_uuid); o id do ponto e o game_id interno ficam aqui
-  const rows = await query(`SELECT g.uuid AS game_uuid, h.rating_before, h.rating_after, h.delta, h.reason, h.created_at FROM rating_history h LEFT JOIN games g ON g.id = h.game_id WHERE ${where.join(' AND ')} ORDER BY h.created_at, h.id LIMIT 5000`, params);
+  const rows = await query(`SELECT g.uuid AS game_uuid, h.rating_before, h.rating_after, h.delta, h.reason, h.player_accuracy, h.bot_elo, h.created_at FROM rating_history h LEFT JOIN games g ON g.id = h.game_id WHERE ${where.join(' AND ')} ORDER BY h.created_at, h.id LIMIT 5000`, params);
   let start = null;
   if (from) {
     const [prev] = await query('SELECT rating_after FROM rating_history WHERE user_id = ? AND created_at < ? ORDER BY created_at DESC, id DESC LIMIT 1', [uid, from]);
@@ -74,7 +78,7 @@ export async function ratingHistory(req, res, url) {
 
   let points;
   if (group === 'none') {
-    points = rows.map(r => ({ at: iso(r.created_at), rating: Number(r.rating_after), delta: Number(r.delta), games: r.reason === 'inicial' ? 0 : 1, reason: r.reason, game_id: fromBinOrNull(r.game_uuid) }));
+    points = rows.map(r => ({ at: iso(r.created_at), rating: Number(r.rating_after), delta: Number(r.delta), games: r.reason === 'inicial' ? 0 : 1, reason: r.reason, accuracy: r.player_accuracy == null ? null : Number(r.player_accuracy), bot_elo: r.bot_elo == null ? null : Number(r.bot_elo), game_id: fromBinOrNull(r.game_uuid) }));
   } else {
     const map = new Map();
     for (const r of rows) {

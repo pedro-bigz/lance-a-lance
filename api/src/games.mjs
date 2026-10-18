@@ -1,7 +1,8 @@
 // Partidas: criar, atualizar (lances, PGN, estado), listar, ler e excluir — sempre do usuário logado
 // (administrador pode ler as de qualquer usuário com ?user_id=). Ao concluir, soma o resultado e os lances em
-// player_stats e, se a partida vale pontuação, calcula a pontuação nova (nunca o cliente) e grava em
-// rating_history. Tudo numa transação que trava a linha da partida, então concluir duas vezes não conta duas vezes.
+// player_stats numa transação que trava a linha da partida (concluir duas vezes não conta duas vezes). Se a partida
+// vale pontuação, a conclusão só marca a pontuação como pendente (rating_status = 'pending'); depois do commit a
+// partida entra na fila de análise (src/rating/), que roda o Stockfish no servidor e aplica o delta (nunca o cliente).
 // Para fora da API, partidas e usuários são identificados pelo uuid; o id numérico (games.id, users.id) fica aqui dentro.
 import { fail, readJson, send } from './http.mjs';
 import { requireUser } from './auth.mjs';
@@ -10,6 +11,8 @@ import { ROLES } from './config.mjs';
 import * as users from './user-store.mjs';
 import { uuidv7, isUuid, toBin, fromBin, fromBinOrNull } from './uuid.mjs';
 import { CLS_COLUMNS, CLASSIFICATIONS, CLS_ALIAS } from './move-classes.mjs';
+import { RATING_START as START, RATING_MIN as MIN, BOT_ELO } from '../../shared/rating.mjs';
+import { MAX_ATTEMPTS, ratingQueue } from './rating/index.mjs';
 
 const POOL = { query };
 const MAX_BODY = 256 * 1024;
@@ -19,11 +22,12 @@ const MAX_META = 8 * 1024;
 
 // classificações de lance (valores de moves[].cls) e a coluna de player_stats de cada uma: veja move-classes.mjs
 
-export const RATING_START = 400;
-export const RATING_MIN = 100;
-export const RATING_STEP = 10;   // +10 vitória, −10 derrota, empate não muda (as mesmas regras do app)
+// pontuação inicial e mínima: as mesmas da fórmula (shared/rating.mjs); os pontos de cada partida vêm de src/rating/
+export const RATING_START = START;
+export const RATING_MIN = MIN;
 
-const BOT_LEVELS = ['novato', 'iniciante', 'intermediario', 'avancado', 'mestre', 'gm'];
+// níveis do bot: os da tabela de Elo da fórmula (BOT_ELO, o mesmo Elo nominal da interface)
+export const BOT_LEVELS = Object.keys(BOT_ELO);
 const OPPONENTS = ['bot', 'humano', 'analise'];
 const MODES = ['normal', 'assistido'];
 const STATUSES = ['em_andamento', 'concluida', 'abandonada'];
@@ -126,7 +130,7 @@ export async function targetUser(req, url) {
 
 // ---------- Leitura ----------
 // white_uuid/black_uuid: o uuid de cada lado (LEFT JOIN em users, veja FROM_GAMES)
-const SUMMARY = 'g.id, g.uuid, wu.uuid AS white_uuid, bu.uuid AS black_uuid, g.client_ref, g.white_user_id, g.black_user_id, g.opponent_type, g.bot_level, g.mode, g.status, g.result, g.result_reason, g.opening_name, g.ply_count, g.rated, g.rating_delta, g.meta, g.started_at, g.finished_at, g.created_at, g.updated_at';
+const SUMMARY = 'g.id, g.uuid, wu.uuid AS white_uuid, bu.uuid AS black_uuid, g.client_ref, g.white_user_id, g.black_user_id, g.opponent_type, g.bot_level, g.mode, g.status, g.result, g.result_reason, g.opening_name, g.ply_count, g.rated, g.rating_delta, g.rating_status, g.rating_attempts, g.player_accuracy, g.meta, g.started_at, g.finished_at, g.created_at, g.updated_at';
 const FULL = `${SUMMARY}, g.start_fen, g.pgn, g.moves`;
 const FROM_GAMES = 'games g LEFT JOIN users wu ON wu.id = g.white_user_id LEFT JOIN users bu ON bu.id = g.black_user_id';
 
@@ -135,6 +139,13 @@ function outcomeFor(result, color) {
   if (!result || !color) return null;
   if (result === '1/2-1/2') return 'empate';
   return (result === '1-0') === (color === 'w') ? 'vitoria' : 'derrota';
+}
+
+// estado da pontuação para fora: 'pending' (na fila ou esperando nova tentativa), 'applied', 'failed' (desistiu
+// depois de MAX_ATTEMPTS) ou null (não vale pontuação, ou foi calculada antes da análise pelo Stockfish)
+export function ratingStatusOf(g) {
+  if (g.rating_status === 'failed') return Number(g.rating_attempts) >= MAX_ATTEMPTS ? 'failed' : 'pending';
+  return g.rating_status || null;
 }
 
 export function publicGame(g, uid, full = false) {
@@ -147,6 +158,8 @@ export function publicGame(g, uid, full = false) {
     result: g.result, result_reason: g.result_reason, outcome: outcomeFor(g.result, color),
     opening_name: g.opening_name, ply_count: Number(g.ply_count), rated: !!g.rated,
     rating_delta: g.rating_delta == null ? null : Number(g.rating_delta),
+    rating_status: ratingStatusOf(g),
+    player_accuracy: g.player_accuracy == null ? null : Number(g.player_accuracy),
     meta: parseJson(g.meta),
     started_at: iso(g.started_at), finished_at: iso(g.finished_at), created_at: iso(g.created_at), updated_at: iso(g.updated_at),
   };
@@ -222,13 +235,10 @@ const effectiveRated = (g) => !!g.rated && g.opponent_type === 'bot' && g.mode =
 async function applyConclusion(db, g, list) {
   const sides = [['w', g.white_user_id], ['b', g.black_user_id]].filter(([, id]) => id != null);
   for (const [, uid] of sides) await ensureStats(db, uid);
-  const locked = new Map();
-  for (const [, uid] of sides) {
-    const [row] = await db.query('SELECT user_id, rating FROM player_stats WHERE user_id = ? FOR UPDATE', [uid]);
-    locked.set(String(uid), row);
-  }
+  // trava as linhas de player_stats de quem jogou (a fila de pontuação trava a mesma linha ao aplicar o delta)
+  for (const [, uid] of sides) await db.query('SELECT user_id FROM player_stats WHERE user_id = ? FOR UPDATE', [uid]);
   const counts = g.opponent_type !== 'analise';
-  const changes = { stats_applied: g.stats_applied ? 1 : 0, rating_delta: g.rating_delta, counted_moves: parseJson(g.counted_moves) };
+  const changes = { stats_applied: g.stats_applied ? 1 : 0, rating_delta: g.rating_delta, rating_status: g.rating_status, counted_moves: parseJson(g.counted_moves) };
   if (!g.stats_applied) {
     for (const [color, uid] of sides) {
       const out = counts ? outcomeFor(g.result, color) : null;
@@ -236,14 +246,11 @@ async function applyConclusion(db, g, list) {
         const col = out === 'vitoria' ? 'wins' : out === 'derrota' ? 'losses' : 'draws';
         await db.query(`UPDATE player_stats SET games_played = games_played + 1, ${col} = ${col} + 1 WHERE user_id = ?`, [uid]);
       }
-      if (out && effectiveRated(g) && (g.opponent_type === 'bot')) {
-        const before = Number(locked.get(String(uid)).rating);
-        const step = out === 'vitoria' ? RATING_STEP : out === 'derrota' ? -RATING_STEP : 0;
-        const after = Math.max(RATING_MIN, before + step);
-        await db.query('UPDATE player_stats SET rating = ? WHERE user_id = ?', [after, uid]);
-        await db.query('INSERT INTO rating_history (user_id, game_id, rating_before, rating_after, delta, reason) VALUES (?, ?, ?, ?, ?, ?)',
-          [uid, g.id, before, after, after - before, out]);
-        changes.rating_delta = after - before;
+      // vale pontuação: fica pendente; a fila de análise (src/rating/) calcula e aplica depois do commit
+      if (out && effectiveRated(g) && g.bot_level) {
+        changes.rating_status = 'pending';
+        changes.rating_delta = null;
+        changes.queued = true;
       }
     }
     changes.stats_applied = 1;
@@ -266,17 +273,32 @@ async function applyConclusion(db, g, list) {
     }
     changes.counted_moves = now;
   }
-  await db.query('UPDATE games SET stats_applied = ?, rating_delta = ?, counted_moves = ? WHERE id = ?',
-    [changes.stats_applied, changes.rating_delta ?? null, JSON.stringify(changes.counted_moves || null), g.id]);
+  await db.query('UPDATE games SET stats_applied = ?, rating_delta = ?, rating_status = ?, counted_moves = ? WHERE id = ?',
+    [changes.stats_applied, changes.rating_delta ?? null, changes.rating_status ?? null, JSON.stringify(changes.counted_moves || null), g.id]);
+  return !!changes.queued;
 }
 
-// a mudança de pontuação desta partida para o usuário (para a animação +10/−10 do app)
+// a mudança de pontuação desta partida para o usuário (para a animação de +/− do app):
+//   aplicada → {status: 'applied', before, after, delta, accuracy, bot_elo, expected_score, engine_version};
+//   pendente → {status: 'pending', before, after, delta: 0} com before = after = pontuação atual (um app antigo, que
+//   não olha o status, só vê "sem mudança"); falhou de vez → {status: 'failed', …, delta: 0}; não vale → null.
+// Partidas de antes da análise pelo Stockfish (+10/−10) saem como aplicadas, com accuracy null.
 async function ratingChange(gameId, uid, db = POOL) {
-  const [h] = await db.query('SELECT rating_before, rating_after, delta FROM rating_history WHERE game_id = ? AND user_id = ? ORDER BY id DESC LIMIT 1', [gameId, uid]);
+  const [g] = await db.query('SELECT rating_status, rating_attempts, player_accuracy, bot_elo, expected_score, engine_version FROM games WHERE id = ?', [gameId]);
   const [s] = await db.query('SELECT rating FROM player_stats WHERE user_id = ?', [uid]);
+  const rating = s ? Number(s.rating) : RATING_START;
+  const status = g ? ratingStatusOf(g) : null;
+  if (status === 'pending' || status === 'failed') return { change: { status, before: rating, after: rating, delta: 0 }, rating };
+  const [h] = await db.query('SELECT rating_before, rating_after, delta FROM rating_history WHERE game_id = ? AND user_id = ? ORDER BY id DESC LIMIT 1', [gameId, uid]);
+  if (!h) return { change: null, rating };
+  const num = (v) => (v == null ? null : Number(v));
   return {
-    change: h ? { before: Number(h.rating_before), after: Number(h.rating_after), delta: Number(h.delta) } : null,
-    rating: s ? Number(s.rating) : RATING_START,
+    change: {
+      status: 'applied', before: Number(h.rating_before), after: Number(h.rating_after), delta: Number(h.delta),
+      accuracy: num(g && g.player_accuracy), bot_elo: num(g && g.bot_elo), expected_score: num(g && g.expected_score),
+      engine_version: (g && g.engine_version) || null,
+    },
+    rating,
   };
 }
 
@@ -351,11 +373,16 @@ async function updateIn(db, id, uid, ch) {
   const out = mergeUpdate(g, ch);
   await writeGame(db, id, out);
   const after = await findGame(id, db, true);
-  if (after.status === 'concluida') await applyConclusion(db, after, parseJson(after.moves));
+  const queued = after.status === 'concluida' ? await applyConclusion(db, after, parseJson(after.moves)) : false;
   const fresh = await findGame(id, db);
-  return { game: publicGame(fresh, uid, true), ...(fresh.status === 'concluida' ? await ratingChange(id, uid, db) : { change: null, rating: null }) };
+  return { id, queued, game: publicGame(fresh, uid, true), ...(fresh.status === 'concluida' ? await ratingChange(id, uid, db) : { change: null, rating: null }) };
 }
-const update = (id, uid, ch) => transaction(db => updateIn(db, id, uid, ch));
+// depois do commit: a partida que ficou com a pontuação pendente entra na fila de análise
+function afterCommit(out) {
+  if (out.queued) ratingQueue.enqueue(out.id);
+  return out;
+}
+const update = async (id, uid, ch) => afterCommit(await transaction(db => updateIn(db, id, uid, ch)));
 
 const reply = (res, status, out) => send(res, status, { ok: true, game: out.game, rating_change: out.change, rating: out.rating });
 
@@ -397,7 +424,7 @@ export async function create(req, res) {
     }
     return updateIn(db, r.insertId, me.id, rest);
   });
-  return reply(res, 201, out);
+  return reply(res, 201, afterCommit(out));
 }
 
 export async function patch(req, res, rawId) {
@@ -410,6 +437,18 @@ export async function patch(req, res, rawId) {
   const g = await findByUuid(rawId);
   if (!isOwner(g, me.id)) fail(me.role === ROLES.ADMIN ? 403 : 404, me.role === ROLES.ADMIN ? 'Só quem jogou pode alterar a partida.' : 'Partida não encontrada.');
   return reply(res, 200, await update(g.id, me.id, ch));
+}
+
+// GET /v1/games/:id/rating — estado da pontuação da partida (o app pergunta até sair do 'pending').
+// Quem jogou ou administrador; partida de outra pessoa dá 404, como na leitura.
+export async function rating(req, res, rawId) {
+  const me = await requireUser(req);
+  const g = await findByUuid(rawId);
+  const owner = isOwner(g, me.id);
+  if (!owner && me.role !== ROLES.ADMIN) fail(404, 'Partida não encontrada.');
+  const uid = owner ? me.id : (g.white_user_id || g.black_user_id);
+  const out = g.status === 'concluida' ? await ratingChange(g.id, uid) : { change: null, rating: null };
+  return send(res, 200, { ok: true, game_id: fromBin(g.uuid), rating_status: ratingStatusOf(g), rating_change: out.change, rating: out.rating });
 }
 
 // exclui a partida (só quem jogou). A pontuação e as estatísticas já somadas continuam; o ponto do histórico
